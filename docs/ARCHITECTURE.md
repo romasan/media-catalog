@@ -1,0 +1,224 @@
+# Архитектура приложения
+
+## Обзор
+
+Приложение представляет собой **Electron-десктоп** с тремя процессами:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Electron                              │
+│                                                          │
+│  ┌─────────────────┐        ┌──────────────────────┐    │
+│  │  Main-процесс   │  IPC   │  Renderer-процесс    │    │
+│  │  (Node.js)      │◄──────►│  (React/Chromium)    │    │
+│  │                 │        │                      │    │
+│  │  Database       │        │  AppContext (store)  │    │
+│  │  Scanner        │        │  UI-компоненты       │    │
+│  │  Thumbnails     │        │                      │    │
+│  │  IPC-handlers   │        │                      │    │
+│  └─────────────────┘        └──────────┬───────────┘    │
+│          │                             │                │
+│          │                     ┌───────▼────────┐       │
+│          │  contextBridge      │   Preload      │       │
+│          └────────────────────►│   (window.api) │       │
+│                                └────────────────┘       │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Три уровня
+
+| Уровень | Директория | Роль |
+|---------|-----------|------|
+| **Main** | `src/main/` | Node.js-процесс. Владеет базой данных, сканированием ФС, генерацией превью, протоколом стриминга. |
+| **Preload** | `src/preload/` | Тонкий мост через `contextBridge`. Экспонирует типизированный API `window.api` и не содержит бизнес-логики. |
+| **Renderer** | `src/renderer/` | React-интерфейс. Взаимодействует с main-процессом только через `window.api`. |
+
+Между main и shared-кодом общие типы данных определены в `src/shared/types.ts`, а константы IPC-каналов и интерфейс `Api` — в `src/shared/ipc.ts`.
+
+## Main-процесс
+
+### `src/main/index.ts` — точка входа
+
+Отвечает за:
+
+1. **Регистрацию привилегированного протокола** `media-stream://` (standard, secure, supportFetchAPI, stream) до готовности приложения.
+2. **Создание окна** `BrowserWindow` (1200×800, минимум 800×600, `contextIsolation: true`, `nodeIntegration: false`, `sandbox: false`).
+3. **Определение путей данных**: `media-catalog-data/` внутри `userData` (в dev — рядом с проектом, в production — в папке пользователя). Там лежат `catalog.db` и `thumbnails/`.
+4. **Инициализацию зависимостей**: `Database`, `ThumbnailGenerator`, `CatalogScanner`.
+5. **Реализацию протокола `media-stream`** — декодирует путь из URL-адреса `media-stream://local/<base64url>`, проверяет существование файла, отдаёт его через `net.fetch(pathToFileURL(...))`.
+6. **Фоновое сканирование** — запускается через 1 секунду после старта.
+7. **Сериализацию сканирования** — функция `runScan()` защищает от параллельных запусков: если скан уже идёт, устанавливается флаг `pendingScan`, и по завершении текущего запускается повторный.
+
+События, отправляемые в renderer:
+- `IPC.OnScanComplete` — результат сканирования
+- `IPC.OnThumbnailProgress` — прогресс генерации превью
+- `IPC.OnThumbnailReady` — готовность конкретного превью
+
+### `src/main/database.ts` — JSON-хранилище
+
+Простая JSON-база с атомарной записью: пишет во временный файл `catalog.db.tmp`, затем `renameSync` — это защищает от повреждения при сбое.
+
+- **Сохранение с дебаунсом 300 мс** — частые операции не вызывают постоянную запись на диск.
+- **Коллекции**: `catalogs`, `mediaFiles`, `tags`, `mediaTags`.
+- **Идемпотентные операции**: `addCatalog` не создаёт дубликат по нормализованному пути; `createTag` не создаёт дубликат по имени (без учёта регистра).
+- **Очистка осиротевших тегов** (`cleanupOrphanTags`) — при удалении каталога или файлов тег, оставшийся без использований и с `lastUsedAt === 0`, удаляется.
+- **Синхронные методы** — все обращения к базе синхронны; база небольшая (метаданные), нагрузка не критична.
+
+### `src/main/scanner.ts` — сканирование ФС
+
+Алгоритм `scan()`:
+
+1. Для каждого каталога рекурсивно обходит дерево (`walkDirectory`).
+2. **Пропускает**: скрытые папки (`.`), `@eaDir`, `System Volume Information`.
+3. **Фильтрует файлы** по расширениям (`isSupportedFile`): фото — `.jpg .jpeg .png .gif .webp .bmp .tiff .tif .heic`; видео — `.mp4 .mov .avi .mkv .webm .m4v`.
+4. Сравнивает найденное с базой:
+   - Новые файлы → создаёт записи `MediaFile` (id через `randomUUID`, дата создания через `birthtime` или `mtime`), ставит в очередь генерацию превью.
+   - Существующие → обновляет `modifiedAt`/`size`/`createdAt`, если файл изменился (сравнение `mtime` и `size`).
+   - Отсутствующие → удаляет из базы вместе со связями тегов и удаляет файлы превью.
+5. Возвращает `ScanResult` (добавлено/удалено файлов и путей).
+
+**Особенности**:
+- Если файл перекрывается двумя каталогами (вложенными), он приписывается первому найденному (первый каталог в списке).
+- Сканирование не удаляет превью-файлы целиком при удалении каталога — это делает `removeCatalog` в IPC-обработчике через `deleteThumbnailsForFiles`.
+
+### `src/main/thumbnails.ts` — генерация превью
+
+- **Очередь** `queueThumbnails`: добавляет только файлы без `thumbnailPath`.
+- **Последовательная обработка**: один процесс `ffmpeg` за раз, по завершении — следующий.
+- **Превью** — квадрат 400×400 (`scale=400:400:force_original_aspect_ratio=increase,crop=400:400`), всегда JPG.
+- **Имя файла превью** — хэш пути: `${hashString(path)}${ext}.jpg` в папке `thumbnails/`.
+- **Кэширование**: если файл превью уже существует — используется повторно.
+- **Видео**: извлекается кадр с 0.5 секунды (`-ss 0.5`).
+- **Прогресс**: отправляется в renderer не чаще 1 раза в 200 мс (троттлинг).
+- **Путь к ffmpeg**: `ffmpeg-static`, в production заменяется `app.asar` → `app.asar.unpacked` (бинарник распаковывается).
+- **Удаление**: `deleteThumbnailsForFiles` удаляет и по сохранённому `thumbnailPath`, и по вычисленному хэшу пути.
+
+### `src/main/ipc-handlers.ts` — обработчики IPC
+
+Все запросы от renderer обрабатываются через `ipcMain.handle`. Полный список каналов см. в [DATA.md](DATA.md#каналы-ipc).
+
+Использует контекст `IpcHandlerContext`, куда передаются зависимости (database, scanner, thumbnailGenerator, диалоги, окно, `runScan`).
+
+## Preload
+
+### `src/preload/index.ts`
+
+Экспонирует через `contextBridge.exposeInMainWorld('api', api)` объект `Api` (тип из `src/shared/ipc.ts`). Каждый метод — обёртка над `ipcRenderer.invoke`. События (`onScanComplete`, `onThumbnailProgress`, `onThumbnailReady`) возвращают функцию-отписку.
+
+Renderer получает доступ через `window.api` (типизирован в `src/renderer/global.d.ts`).
+
+## Renderer
+
+### `src/renderer/main.tsx`
+
+Точка входа React: монтирует `<App />` в StrictMode в `#root`.
+
+### `src/renderer/App.tsx`
+
+Корневой компонент. Композиция:
+
+```
+App
+└── AppProvider (store/AppContext)
+    └── AppContent
+        ├── FilterBar           — панель фильтра по тегам
+        ├── MediaGrid           — виртуализированная сетка превью
+        ├── BurgerMenu          — кнопка-меню (управление каталогами/тегами)
+        ├── ThumbnailProgressBar— прогресс генерации превью
+        ├── ToastContainer      — всплывающие уведомления
+        └── FullscreenViewer    — полноэкранный просмотр (условно)
+```
+
+`AppContent` хранит `fullscreenIndex` — индекс открытого в полноэкранном режиме файла. Навигация циклическая: `(prev + direction + length) % length`.
+
+### `src/renderer/store/AppContext.tsx` — глобальное состояние
+
+Единый источник правды для UI:
+
+| Состояние | Описание |
+|-----------|---------|
+| `catalogs`, `catalogStats` | Список каталогов и статистика по ним |
+| `tags` | Список тегов с количеством файлов |
+| `filter` | Активный фильтр `{ tagIds, mode: 'AND' | 'OR' }` |
+| `mediaItems`, `mediaTotal` | Текущие отображаемые файлы и общее количество |
+| `isLoadingMedia` | Флаг загрузки |
+| `toasts` | Всплывающие уведомления |
+
+**Подписки на события main-процесса:**
+- `onThumbnailReady` → обновляет `thumbnailPath` у конкретного файла в `mediaItems` (превью появляется без перезагрузки сетки).
+- `onScanComplete` → показывает тост о добавленных/удалённых файлах и перезагружает каталоги, статистику и медиа.
+
+**Паттерн фильтрации:** `loadMedia` отправляет в main-процесс `MediaFilters { filter }`, и фильтрация выполняется централизованно в `ipc-handlers.ts` (не на клиенте). Результат отсортирован по `createdAt` (новые сверху).
+
+### Компоненты
+
+| Компонент | Файл | Назначение |
+|-----------|------|-----------|
+| `MediaGrid` | `components/MediaGrid.tsx` | Виртуализированная сетка: считает размер ячейки (100–200 px) и число колонок от ширины контейнера, рендерит только видимые строки (overscan 3 строки). Использует `ResizeObserver` для отслеживания размеров. |
+| `MediaCard` | внутри `MediaGrid` | Карточка превью. Для видео показывает бейдж ▶. Грузит превью через `window.api.getMediaStreamUrl`. |
+| `FilterBar` | `components/FilterBar.tsx` | Панель выбранных тегов + переключатель AND/OR (виден при >1 теге). |
+| `BurgerMenu` | `components/BurgerMenu.tsx` | Круглая кнопка с попапом меню: «Управление каталогами», «Управление тегами». |
+| `CatalogManagerPopup` | `components/CatalogManagerPopup.tsx` | Список каталогов, добавление через диалог выбора папки, удаление, статистика фото/видео. |
+| `TagManagerPopup` | `components/TagManagerPopup.tsx` | Поиск/создание тегов, удаление, клик по тегу добавляет его в фильтр. |
+| `FullscreenViewer` | `components/FullscreenViewer.tsx` | Полноэкранный просмотр фото/видео, теги файла, добавление/удаление тегов с автодополнением, стрелки ←/→ для навигации, Esc для закрытия. |
+| `DraggableResizable` | `components/DraggableResizable.tsx` | Обёртка для попапов: перетаскивание за заголовок, изменение размера за правый нижний угол, минимумы размеров. |
+| `ThumbnailProgressBar` | `components/ThumbnailProgressBar.tsx` | Показывает прогресс генерации превью (%), скрывается через 300 мс после завершения. |
+| `ToastContainer` | `components/ToastContainer.tsx` | Вывод всплывающих уведомлений (типы: info/success/error), клик закрывает. |
+
+## Потоки данных
+
+### Загрузка приложения
+
+```
+AppProvider mount
+  ├─ loadCatalogs()      → IPC 'catalogs:get'
+  ├─ loadCatalogStats()  → IPC 'catalogs:stats'
+  ├─ loadTags()          → IPC 'tags:get'
+  └─ loadMedia()         → IPC 'media:get'  ({ filter })
+        │
+        ▼
+main: ipc-handlers
+  ├─ database.getMediaFiles()
+  ├─ фильтрация по тегам (AND/OR)
+  ├─ сортировка по createdAt (новые сверху)
+  └─ возврат { items, total }
+```
+
+### Подписка на события main → renderer
+
+| Канал | Когда отправляется | Что делает renderer |
+|-------|-------------------|---------------------|
+| `scan:complete` | После каждого сканирования | Показывает тост, перезагружает catalogs/stats/media |
+| `thumbnails:progress` | Во время генерации превью (не чаще 200 мс) | Обновляет прогресс-бар |
+| `thumbnails:ready` | Готово превью файла | Обновляет `thumbnailPath` в `mediaItems` — сетка перерисовывается |
+
+### Навигация в полноэкранном режиме
+
+```
+MediaGrid → клик по карточке
+  → AppContent.handleOpenFullscreen(media)
+  → fullscreenIndex = индекс в mediaItems
+  → FullscreenViewer
+  → ←/→ или кнопки ◀/▶ → handleNavigate(±1) (циклически)
+```
+
+### Стриминг медиа
+
+```
+renderer: window.api.getMediaStreamUrl({ filePath, type })
+  → IPC 'media:stream:url'
+  → main: возвращает "media-stream://local/<base64url(filePath)>?type=..."
+  → renderer: ставит URL в <img>/<video>
+  → main: перехватывает "media-stream://" в protocol.handle
+  → fs.existsSync → net.fetch(file://URL)
+```
+
+Такой подход обходит ограничения `file://` в renderer (запуск изолированного контента) и позволяет стримить видео по HTTP-подобному протоколу.
+
+## Безопасность
+
+- `contextIsolation: true`, `nodeIntegration: false` — renderer изолирован.
+- Доступ к API — только через `window.api` (explicit, типизированный).
+- `setWindowOpenHandler` — внешние ссылки открываются в системном браузере, в окне — deny.
+- Протокол `media-stream` проверяет существование файла по пути из URL и не даёт доступа к произвольным ресурсам вне указанного пути (однако путь полностью контролируется main-процессом при формировании URL).
+- Пути файлов в URL кодируются base64url, чтобы избежать конфликтов со спецсимволами и слэшами.

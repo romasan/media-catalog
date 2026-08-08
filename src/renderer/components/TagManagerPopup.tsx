@@ -1,0 +1,119 @@
+import React, { useMemo, useState } from 'react';
+import { useApp } from '../store/AppContext';
+import { DraggableResizable } from './DraggableResizable';
+
+interface TagManagerPopupProps {
+  onClose: () => void;
+}
+
+export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactElement {
+  const { tags, loadTags, addTagToFilter } = useApp();
+  const [query, setQuery] = useState('');
+
+  const filteredTags = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let result = [...tags];
+    if (q) {
+      result = result.filter(({ tag }) => tag.name.toLowerCase().includes(q));
+    }
+    return result.slice(0, 30);
+  }, [tags, query]);
+
+  const handleCreateNew = async () => {
+    const name = query.trim();
+    if (!name) {
+      return;
+    }
+    try {
+      await window.api.createTag(name);
+      setQuery('');
+      await loadTags();
+    } catch (error) {
+      console.error('Ошибка создания тега:', error);
+    }
+  };
+
+  const handleDelete = async (tagId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      await window.api.deleteTag(tagId);
+      await loadTags();
+    } catch (error) {
+      console.error('Ошибка удаления тега:', error);
+    }
+  };
+
+  const handleTagClick = (tagId: string) => {
+    addTagToFilter(tagId);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleCreateNew();
+    }
+  };
+
+  const exists = tags.some(({ tag }) => tag.name.toLowerCase() === query.trim().toLowerCase());
+
+  return (
+    <DraggableResizable
+      title="Управление тегами"
+      onClose={onClose}
+      defaultWidth={460}
+      defaultHeight={500}
+      minWidth={360}
+      minHeight={300}
+    >
+      <div className="popup-content tag-manager">
+        <div className="tag-search-row">
+          <input
+            className="tag-search-input"
+            type="text"
+            placeholder="Поиск или создание тега..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            autoFocus
+          />
+          {query.trim() && !exists && (
+            <button className="tag-create-button" onClick={handleCreateNew}>
+              Создать «{query.trim()}»
+            </button>
+          )}
+        </div>
+
+        <div className="tag-list">
+          {filteredTags.length === 0 && (
+            <div className="tag-empty">
+              {query.trim() && !exists
+                ? 'Ничего не найдено. Нажмите Enter, чтобы создать тег.'
+                : 'Тегов пока нет. Создайте первый тег.'}
+            </div>
+          )}
+          {filteredTags.map(({ tag, count }) => (
+            <div
+              className="tag-item"
+              key={tag.id}
+              onClick={() => handleTagClick(tag.id)}
+              title={`Добавить «${tag.name}» в фильтр`}
+            >
+              <span className="tag-name">{tag.name}</span>
+              <span className="tag-count">{count} файлов</span>
+              <button
+                className="icon-button delete-button"
+                onClick={(e) => handleDelete(tag.id, e)}
+                title="Удалить тег"
+              >
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" />
+                  <line x1="10" y1="11" x2="10" y2="17" />
+                  <line x1="14" y1="11" x2="14" y2="17" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </DraggableResizable>
+  );
+}

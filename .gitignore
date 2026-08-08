@@ -1,0 +1,8 @@
+node_modules/
+dist/
+thumbnails/
+release/
+media-catalog-data/
+
+*.db
+.DS_Store
