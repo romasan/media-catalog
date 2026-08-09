@@ -15,7 +15,6 @@ interface GridState {
 }
 
 const MIN_ITEM_SIZE = 100;
-const MAX_ITEM_SIZE = 200;
 const OVERSCAN_ROWS = 3;
 
 function useElementSize(ref: React.RefObject<HTMLDivElement>): { width: number; height: number } {
@@ -62,27 +61,10 @@ export function MediaGrid({ onOpenFullscreen }: MediaGridProps): React.ReactElem
       };
     }
 
-    // Определяем количество колонок, чтобы размер ячейки был в диапазоне [100, 200]
-    let columns = Math.floor(containerWidth / MAX_ITEM_SIZE);
-    if (columns < 1) {
-      columns = 1;
-    }
-
-    // Уточняем размер
-    let itemSize = Math.floor(containerWidth / columns);
-    itemSize = Math.max(MIN_ITEM_SIZE, Math.min(MAX_ITEM_SIZE, itemSize));
-
-    // Пересчитываем колонки если размер ушёл за пределы
-    if (columns > 1 && itemSize < MIN_ITEM_SIZE) {
-      columns = Math.floor(containerWidth / MIN_ITEM_SIZE);
-      itemSize = Math.floor(containerWidth / columns);
-    }
-
-    // Проверяем, можно ли увеличить размер, если он меньше максимального
-    // и при этом помещается больше колонок
-    if (columns * (columns + 1) <= containerWidth / MAX_ITEM_SIZE) {
-      // Это происходит автоматически из-за floor
-    }
+    // Максимальное число колонок, при котором размер ячейки не меньше MIN_ITEM_SIZE (100px).
+    // Карточки заполняют всю ширину контейнера, а размер остаётся в диапазоне [100, 200].
+    const columns = Math.max(1, Math.floor(containerWidth / MIN_ITEM_SIZE));
+    const itemSize = containerWidth / columns;
 
     const rows = Math.ceil(mediaItems.length / columns);
 

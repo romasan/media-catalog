@@ -4,6 +4,10 @@
 
 Initial implementation of Media Catalog — an Electron + React + TypeScript app for cataloging photos and videos with tags, folder scanning and ffmpeg thumbnails.
 
+## 2026-08-09 — Responsive media grid
+
+- Media cards now fill the full window width with sizes in the 100–200 px range.
+
 ## 2026-08-09 — Fix Windows build
 
 - Fixed `npm run dist:win` crashing with `ERR_REQUIRE_ESM` on Windows: `app-builder-lib` (26.15.x) requires `@noble/hashes/blake2.js` via CommonJS `require()`, but version 2.x of `@noble/hashes` is ESM-only.
