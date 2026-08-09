@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { CatalogManagerPopup } from './CatalogManagerPopup';
 import { TagManagerPopup } from './TagManagerPopup';
+import { useApp } from '../store/AppContext';
 
 type ActivePopup = 'catalogs' | 'tags' | null;
 
 export function BurgerMenu(): React.ReactElement {
+  const { exportData, importData } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [activePopup, setActivePopup] = useState<ActivePopup>(null);
 
@@ -15,6 +17,16 @@ export function BurgerMenu(): React.ReactElement {
 
   const closePopup = () => {
     setActivePopup(null);
+  };
+
+  const handleExport = () => {
+    setIsOpen(false);
+    exportData();
+  };
+
+  const handleImport = () => {
+    setIsOpen(false);
+    importData();
   };
 
   return (
@@ -51,6 +63,13 @@ export function BurgerMenu(): React.ReactElement {
               onClick={() => handleMenuItemClick('tags')}
             >
               🏷️ Управление тегами
+            </button>
+            <div className="burger-menu-separator" />
+            <button className="burger-menu-item" onClick={handleExport}>
+              💾 Экспорт
+            </button>
+            <button className="burger-menu-item" onClick={handleImport}>
+              📥 Импорт
             </button>
           </div>
         </>

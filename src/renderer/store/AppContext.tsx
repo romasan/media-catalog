@@ -32,6 +32,8 @@ interface AppState {
   showToast: (message: string, type?: 'info' | 'success' | 'error') => void;
   dismissToast: (id: number) => void;
   runScan: () => Promise<void>;
+  exportData: () => Promise<void>;
+  importData: () => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -98,6 +100,33 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     await loadCatalogStats();
     await loadMedia();
   }, [showToast, loadCatalogs, loadCatalogStats, loadMedia]);
+
+  const exportData = useCallback(async () => {
+    try {
+      await window.api.exportData();
+      showToast('Данные экспортированы', 'success');
+    } catch (error) {
+      console.error('Ошибка экспорта данных:', error);
+      showToast('Ошибка экспорта данных', 'error');
+    }
+  }, [showToast]);
+
+  const importData = useCallback(async () => {
+    try {
+      const result = await window.api.importData();
+      if (result === null) {
+        return;
+      }
+      await loadCatalogs();
+      await loadCatalogStats();
+      await loadTags();
+      await loadMedia();
+      showToast('Данные импортированы', 'success');
+    } catch (error) {
+      console.error('Ошибка импорта данных:', error);
+      showToast('Ошибка импорта данных', 'error');
+    }
+  }, [showToast, loadCatalogs, loadCatalogStats, loadTags, loadMedia]);
 
   const addCatalog = useCallback(async () => {
     await window.api.addCatalog();
@@ -204,6 +233,8 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
       showToast,
       dismissToast,
       runScan,
+      exportData,
+      importData,
     }),
     [
       catalogs,
@@ -227,6 +258,8 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
       showToast,
       dismissToast,
       runScan,
+      exportData,
+      importData,
     ],
   );
 
