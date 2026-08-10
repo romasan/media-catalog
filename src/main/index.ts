@@ -56,6 +56,7 @@ function createWindow(): void {
     minWidth: 800,
     minHeight: 600,
     title: 'Медиа Каталог',
+    autoHideMenuBar: true,
     backgroundColor: '#1a1a1a',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),

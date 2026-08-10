@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-08-10 — Auto-hide the window menu bar
+- The window menu bar (File/Edit/View) is now hidden by default on Windows (`autoHideMenuBar: true`); it can still be shown temporarily with the Alt key.
+
 ## 2026-08-10 — Show total tag count in tag manager
 - The tag manager popup now shows the total number of tags («Всего тегов: N») below the tag list.
 
