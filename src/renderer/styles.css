@@ -548,6 +548,78 @@ button {
   padding: 16px 0;
 }
 
+/* Модальное подтверждение удаления тега */
+
+.tag-delete-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 310;
+}
+
+.tag-delete-modal-window {
+  width: 340px;
+  max-width: calc(100% - 48px);
+  padding: 18px;
+  border: 1px solid #5a2d2d;
+  border-radius: 10px;
+  background: #2c2c2c;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+}
+
+.tag-delete-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.tag-delete-modal-text {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #bbb;
+}
+
+.tag-delete-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.tag-delete-modal-cancel {
+  padding: 6px 14px;
+  background: #3a3a3a;
+  border: none;
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 12px;
+}
+
+.tag-delete-modal-cancel:hover {
+  background: #4a4a4a;
+  color: #fff;
+}
+
+.tag-delete-modal-submit {
+  padding: 6px 14px;
+  background: #a53a3a;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+}
+
+.tag-delete-modal-submit:hover {
+  background: #c44a4a;
+}
+
 /* ==== Метатеги ==== */
 
 .meta-tags-section {

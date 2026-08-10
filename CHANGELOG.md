@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-08-10 — Confirm tag deletion in tag manager
+- Deleting a tag that is assigned to at least one file now shows a modal confirmation dialog (tag name + file count) with «Удалить»/«Отмена» buttons.
+- The dialog is rendered via a portal into `document.body`, so it always appears above the popup regardless of list scroll; it can be closed with «Отмена», a click on the backdrop, or Esc.
+- Tags with no files are still deleted immediately.
+
+## 2026-08-10 — Fix season periods in docs
+- Fixed season date ranges in `docs/DATA.md` and `docs/WORKFLOW.md`: spring is Mar 1 – May 31, summer is Jun 1 – Aug 31 (matching `src/shared/metaTags.ts`).
+
 ## 2026-08-10 — Meta tags above tag search
 - Moved the meta-tag chips (years, seasons, file types, «без тега») in the tag manager popup above the tag search input, so they are visible without scrolling.
 - Tag list still grows below the search row; popup layout and drag/resize behavior are unchanged.

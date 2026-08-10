@@ -1,15 +1,30 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../store/AppContext';
 import { DraggableResizable } from './DraggableResizable';
 import { META_TAG_GROUPS } from '../../shared/metaTags';
+import type { TagSearchResult } from '../../shared/types';
 
 interface TagManagerPopupProps {
   onClose: () => void;
 }
 
+function pluralize(count: number, one: string, few: string, many: string): string {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) {
+    return one;
+  }
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+    return few;
+  }
+  return many;
+}
+
 export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactElement {
   const { tags, metaTags, loadTags, addTagToFilter } = useApp();
   const [query, setQuery] = useState('');
+  const [tagPendingDelete, setTagPendingDelete] = useState<TagSearchResult | null>(null);
 
   const filteredTags = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -43,8 +58,7 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
     }
   };
 
-  const handleDelete = async (tagId: string, event: React.MouseEvent) => {
-    event.stopPropagation();
+  const handleDelete = async (tagId: string) => {
     try {
       await window.api.deleteTag(tagId);
       await loadTags();
@@ -52,6 +66,45 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
       console.error('Ошибка удаления тега:', error);
     }
   };
+
+  const handleDeleteClick = (tag: TagSearchResult, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (tag.count > 0) {
+      setTagPendingDelete(tag);
+      return;
+    }
+    void handleDelete(tag.tag.id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!tagPendingDelete) {
+      return;
+    }
+    const tagId = tagPendingDelete.tag.id;
+    setTagPendingDelete(null);
+    await handleDelete(tagId);
+  };
+
+  const handleCancelDelete = () => {
+    setTagPendingDelete(null);
+  };
+
+  // Пока открыто подтверждение удаления, Esc закрывает только его, а не весь попап.
+  useEffect(() => {
+    if (!tagPendingDelete) {
+      return;
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        setTagPendingDelete(null);
+      }
+    };
+    // Capture-фаза: перехватываем Esc раньше, чем DraggableResizable (bubbling) закроет попап.
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [tagPendingDelete]);
 
   const handleTagClick = (tagId: string) => {
     addTagToFilter(tagId);
@@ -133,7 +186,7 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
               <span className="tag-count">{count} файлов</span>
               <button
                 className="icon-button delete-button"
-                onClick={(e) => handleDelete(tag.id, e)}
+                onClick={(e) => handleDeleteClick({ tag, count }, e)}
                 title="Удалить тег"
               >
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -145,6 +198,32 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
             </div>
           ))}
         </div>
+
+        {tagPendingDelete &&
+          createPortal(
+            <div className="tag-delete-modal" onClick={handleCancelDelete}>
+              <div
+                className="tag-delete-modal-window"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="tag-delete-modal-title">Удалить тег?</div>
+                <div className="tag-delete-modal-text">
+                  Тег «{tagPendingDelete.tag.name}» присвоен {tagPendingDelete.count}{' '}
+                  {pluralize(tagPendingDelete.count, 'файлу', 'файлам', 'файлам')}. Связи с
+                  файлами будут удалены.
+                </div>
+                <div className="tag-delete-modal-actions">
+                  <button className="tag-delete-modal-cancel" onClick={handleCancelDelete}>
+                    Отмена
+                  </button>
+                  <button className="tag-delete-modal-submit" onClick={handleConfirmDelete}>
+                    Удалить
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
       </div>
     </DraggableResizable>
   );
