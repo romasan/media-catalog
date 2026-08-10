@@ -20,14 +20,14 @@ export function FilterBar(): React.ReactElement | null {
             onClick={() => setFilterMode('AND')}
             title="Показывать только файлы со всеми выбранными тегами"
           >
-            AND
+            все
           </button>
           <button
             className={`filter-toggle-btn ${filter.mode === 'OR' ? 'active' : ''}`}
             onClick={() => setFilterMode('OR')}
             title="Показывать файлы хотя бы с одним из выбранных тегов"
           >
-            OR
+            любой
           </button>
         </div>
       )}

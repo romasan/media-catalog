@@ -112,10 +112,8 @@ button {
   background: transparent;
   border: none;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 14px;
-  line-height: 1;
+  height: 12px;
   padding: 0 2px;
-  transform: rotate(45deg);
 }
 
 .filter-tag-remove:hover {

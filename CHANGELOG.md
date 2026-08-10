@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-08-10 — Rename filter toggle labels
+- Filter toggle labels in FilterBar: AND → «все», OR → «любой»; docs (README, WORKFLOW, ARCHITECTURE) updated accordingly.
+
 ## 2026-08-10 — Confirm tag deletion in tag manager
 - Deleting a tag that is assigned to at least one file now shows a modal confirmation dialog (tag name + file count) with «Удалить»/«Отмена» buttons.
 - The dialog is rendered via a portal into `document.body`, so it always appears above the popup regardless of list scroll; it can be closed with «Отмена», a click on the backdrop, or Esc.
