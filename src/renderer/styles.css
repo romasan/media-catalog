@@ -33,11 +33,11 @@ button {
   position: relative;
 }
 
-/* ==== Фильтр (верхний левый угол) ==== */
+/* ==== Фильтр (нижний левый угол) ==== */
 
 .filter-bar {
   position: fixed;
-  top: 12px;
+  bottom: 12px;
   left: 12px;
   z-index: 100;
   display: flex;
@@ -544,6 +544,15 @@ button {
   color: #777;
   text-align: center;
   padding: 16px 0;
+}
+
+.tag-total {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  padding: 8px 0 0;
+  border-top: 1px solid #3a3a3a;
+  margin-top: 8px;
 }
 
 /* Модальное подтверждение удаления тега */

@@ -31,7 +31,9 @@ export class Database {
           Array.isArray(parsed.tags) &&
           Array.isArray(parsed.mediaTags)
         ) {
-          return parsed as DatabaseSchema;
+          const data = parsed as DatabaseSchema;
+          this.normalizeTagNames(data);
+          return data;
         }
       }
     } catch (error) {
@@ -173,13 +175,14 @@ export class Database {
   }
 
   createTag(name: string): Tag {
-    const existing = this.findTagByName(name);
+    const normalizedName = name.trim().toLowerCase();
+    const existing = this.findTagByName(normalizedName);
     if (existing) {
       return existing;
     }
     const tag: Tag = {
       id: randomUUID(),
-      name: name.trim(),
+      name: normalizedName,
       lastUsedAt: 0,
     };
     this.data.tags.push(tag);
@@ -267,6 +270,40 @@ export class Database {
   }
 
   // ==== Вспомогательные ====
+
+  /**
+   * Приводит имена всех тегов к нижнему регистру и объединяет
+   * теги-дубликаты (например, «foo», «Foo» и «fOo»), перенаправляя
+   * связи mediaTags на первый тег с данным именем.
+   * Выполняется при загрузке базы.
+   */
+  private normalizeTagNames(data: DatabaseSchema): void {
+    const nameToTag = new Map<string, Tag>();
+    const mergedIds = new Set<string>();
+
+    for (const tag of data.tags) {
+      const normalized = tag.name.trim().toLowerCase();
+      const existing = nameToTag.get(normalized);
+      if (existing) {
+        existing.lastUsedAt = Math.max(existing.lastUsedAt, tag.lastUsedAt);
+        for (const relation of data.mediaTags) {
+          if (relation.tagId === tag.id) {
+            relation.tagId = existing.id;
+          }
+        }
+        mergedIds.add(tag.id);
+      } else {
+        tag.name = normalized;
+        nameToTag.set(normalized, tag);
+      }
+    }
+
+    if (mergedIds.size > 0) {
+      data.tags = data.tags.filter((t) => !mergedIds.has(t.id));
+      data.mediaTags = data.mediaTags.filter((r) => !mergedIds.has(r.tagId));
+      this.save();
+    }
+  }
 
   private isTagInUse(tagId: string): boolean {
     return this.data.mediaTags.some((r) => r.tagId === tagId);

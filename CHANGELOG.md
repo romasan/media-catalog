@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-08-10 — Show total tag count in tag manager
+- The tag manager popup now shows the total number of tags («Всего тегов: N») below the tag list.
+
+## 2026-08-10 — Tag names are normalized to lowercase
+- Tag names are now stored in lowercase: `Database.createTag` lowercases the trimmed name, so «foo», «Foo» and «fOo» are treated as the same tag.
+- On database load, existing tags are normalized to lowercase and duplicate tags differing only in case are merged (their `mediaTags` relations are redirected to the surviving tag).
+- `BatchTagBar` now finds the newly created tag case-insensitively; docs (`WORKFLOW`, `ARCHITECTURE`, `DATA`) updated accordingly.
+
+## 2026-08-10 — Move filter bar to bottom-left
+- The filter bar (selected tags + «все»/«любой» toggle) now appears in the bottom-left corner of the window instead of the top-left.
+
 ## 2026-08-10 — Rename filter toggle labels
 - Filter toggle labels in FilterBar: AND → «все», OR → «любой»; docs (README, WORKFLOW, ARCHITECTURE) updated accordingly.
 

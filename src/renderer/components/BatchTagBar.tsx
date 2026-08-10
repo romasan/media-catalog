@@ -38,7 +38,8 @@ export function BatchTagBar(): React.ReactElement | null {
   const handleCreateTag = useCallback(
     async (name: string) => {
       const newTags = await window.api.createTag(name);
-      const newTag = newTags.find((t) => t.name === name) ?? newTags[newTags.length - 1];
+      const normalized = name.trim().toLowerCase();
+      const newTag = newTags.find((t) => t.name === normalized) ?? newTags[newTags.length - 1];
       if (newTag) {
         await applyTag(newTag.id);
       }

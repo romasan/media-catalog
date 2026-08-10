@@ -199,6 +199,8 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
           ))}
         </div>
 
+        <div className="tag-total">Всего тегов: {tags.length}</div>
+
         {tagPendingDelete &&
           createPortal(
             <div className="tag-delete-modal" onClick={handleCancelDelete}>
