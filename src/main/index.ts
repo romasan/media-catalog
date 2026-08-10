@@ -56,6 +56,7 @@ function createWindow(): void {
     minWidth: 800,
     minHeight: 600,
     title: 'Медиа Каталог',
+    icon: path.join(__dirname, '../../build/icons/icon-512.png'),
     autoHideMenuBar: true,
     backgroundColor: '#1a1a1a',
     webPreferences: {

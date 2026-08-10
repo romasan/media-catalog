@@ -34,6 +34,8 @@ npm run dist:linux     # сборка AppImage для Linux
 npm run typecheck      # проверка типов main и preload
 ```
 
+Иконка приложения (окно, установщики Windows/macOS/Linux, favicon) берётся из общего источника — `favicon.ico`/PNG (16–1024 px), конвертируется в `.icns`/`.ico`/PNG и располагается в `build/`.
+
 ## Структура проекта
 
 ```

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-08-10 — App icon from favicon.ico
+- Replaced the default app icon with `/Users/r.bauer/Downloads/favicon.ico` (scaled via nearest-neighbor, no blur) for the window, Windows installer (.ico), macOS bundle (.icns) and Linux (AppImage).
+
 ## 2026-08-10 — Use modification date for year/season meta tags
 - Year and season meta tags are now computed from the file modification date (`modifiedAt`) instead of creation date (`createdAt`), so editing a file moves it to the correct year/season in filters.
 - Media list is now sorted by `modifiedAt` (newest first) instead of `createdAt` in `ipc-handlers.ts`.
