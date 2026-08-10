@@ -38,29 +38,40 @@ function getFileCreationDate(filePath: string): number {
 export class ThumbnailGenerator {
   private thumbnailsDir: string;
   private queue: Array<{ media: MediaFile; filePath: string }> = [];
+  private queuedPaths = new Set<string>();
   private processing = false;
   private totalQueued = 0;
   private processedCount = 0;
   private onProgress?: (progress: ThumbnailProgress) => void;
   private onThumbnailReady?: (media: MediaFile, thumbnailPath: string) => void;
+  /**
+   * Вызывается при неудачной генерации превью.
+   * Возвращает true, если файл можно попробовать снова.
+   */
+  private onThumbnailFailed?: (media: MediaFile, retryAvailable: boolean) => boolean;
   private progressTimer: NodeJS.Timeout | null = null;
 
   constructor(
     thumbnailsDir: string,
     onProgress?: (progress: ThumbnailProgress) => void,
     onThumbnailReady?: (media: MediaFile, thumbnailPath: string) => void,
+    onThumbnailFailed?: (media: MediaFile, retryAvailable: boolean) => boolean,
   ) {
     this.thumbnailsDir = thumbnailsDir;
     this.onProgress = onProgress;
     this.onThumbnailReady = onThumbnailReady;
+    this.onThumbnailFailed = onThumbnailFailed;
     fs.mkdirSync(this.thumbnailsDir, { recursive: true });
   }
 
   queueThumbnails(files: MediaFile[]): void {
     let addedCount = 0;
     for (const file of files) {
-      if (!file.thumbnailPath) {
+      // Пропускаем файлы, для которых уже есть превью, и файлы,
+      // которые уже поставлены в очередь (дедупликация).
+      if (!file.thumbnailPath && !this.queuedPaths.has(file.path)) {
         this.queue.push({ media: file, filePath: file.path });
+        this.queuedPaths.add(file.path);
         addedCount++;
       }
     }
@@ -123,16 +134,36 @@ export class ThumbnailGenerator {
       .then((thumbnailPath) => {
         // Сообщаем о готовности превью (например, для обновления БД)
         this.onThumbnailReady?.(current.media, thumbnailPath);
+        this.finishProcessingItem(current, true);
       })
       .catch((error) => {
         console.error(`Ошибка генерации превью для ${current.media.path}:`, error);
-      })
-      .finally(() => {
-        this.processing = false;
-        this.processedCount++;
-        this.emitProgressThrottled();
-        this.processQueue();
+        // Спрашиваем внешний код (index.ts), можно ли повторить (максимум 1 ретрай решает БД).
+        const retryAllowed = this.onThumbnailFailed?.(current.media, true) ?? false;
+        if (retryAllowed) {
+          // Повторная попытка: ставим файл в начало очереди, не считая его обработанным.
+          this.queue.unshift({ media: current.media, filePath: current.filePath });
+          this.finishProcessingItem(current, false);
+        } else {
+          this.finishProcessingItem(current, true);
+        }
       });
+  }
+
+  private finishProcessingItem(
+    current: { media: MediaFile; filePath: string },
+    counted: boolean,
+  ): void {
+    this.processing = false;
+    if (counted) {
+      this.queuedPaths.delete(current.media.path);
+      this.processedCount++;
+    }
+    // При ретрае (counted === false) файл уже возвращён в начало очереди вызовом
+    // queue.unshift(...) в processQueue, а queuedPaths намеренно не очищается —
+    // иначе повторный queueThumbnails добавил бы дубликат.
+    this.emitProgressThrottled();
+    this.processQueue();
   }
 
   private getThumbnailCachePath(filePath: string): string {

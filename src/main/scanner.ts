@@ -50,6 +50,7 @@ export class CatalogScanner {
             modifiedAt: stats.mtime.getTime(),
             catalogId: found.catalogId,
             thumbnailPath: '',
+            thumbnailRetries: 0,
           };
           newMedia.push(media);
           newMediaPaths.push(filePath);
@@ -92,13 +93,17 @@ export class CatalogScanner {
       removedFiles = this.database.removeMediaByPaths(removedPaths).length;
     }
 
-    // Запускаем генерацию превью для новых файлов
-    if (newMedia.length > 0) {
-      this.thumbnailGenerator.queueThumbnails(newMedia);
+    // Восстанавливаем очередь превью: добавляем новые файлы и файлы,
+    // оставшиеся без превью после прошлого запуска (приложение могло быть
+    // остановлено во время генерации). Дедупликация выполняется внутри
+    // ThumbnailGenerator, поэтому повторная постановка безопасна.
+    const filesNeedingThumbnails = [
+      ...newMedia,
+      ...this.database.getMediaWithoutThumbnail(),
+    ];
+    if (filesNeedingThumbnails.length > 0) {
+      this.thumbnailGenerator.queueThumbnails(filesNeedingThumbnails);
     }
-
-    // Обновляем пути превью в базе (генерация асинхронная — превью появятся позже)
-    // Будем проверять готовые превью при каждом сканировании
 
     return {
       addedFiles: newMedia.length,

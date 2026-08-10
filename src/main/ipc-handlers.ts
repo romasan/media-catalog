@@ -311,6 +311,7 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
           modifiedAt: file.modifiedAt,
           catalogId: '',
           thumbnailPath: '',
+          thumbnailRetries: 0,
         });
       }
 

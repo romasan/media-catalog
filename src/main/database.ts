@@ -319,4 +319,30 @@ export class Database {
       .map((m) => m.thumbnailPath)
       .filter((p) => p && p.length > 0);
   }
+
+  /**
+   * Возвращает медиафайлы, для которых ещё не записан путь к превью.
+   * Это файлы, не обработанные из-за остановки приложения
+   * или недавно добавленные сканированием.
+   * Файлы, превысившие лимит неудачных попыток, не включаются.
+   */
+  getMediaWithoutThumbnail(): MediaFile[] {
+    return this.data.mediaFiles.filter(
+      (m) => !m.thumbnailPath && (m.thumbnailRetries ?? 0) <= 1,
+    );
+  }
+
+  /**
+   * Фиксирует неудачную попытку генерации превью.
+   * Возвращает true, если файл ещё можно ретраить (не превышен лимит).
+   */
+  incrementThumbnailRetries(mediaId: string): boolean {
+    const file = this.data.mediaFiles.find((m) => m.id === mediaId);
+    if (!file) {
+      return false;
+    }
+    file.thumbnailRetries = (file.thumbnailRetries ?? 0) + 1;
+    this.save();
+    return file.thumbnailRetries <= 1;
+  }
 }

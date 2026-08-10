@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-10 — Resume thumbnail generation after restart
+- If the app is stopped while thumbnails are being generated, the next launch resumes processing: all files with an empty `thumbnailPath` are re-queued on `did-finish-load` (`database.getMediaWithoutThumbnail()`), and the progress bar immediately shows the remaining files.
+- `Database.getMediaWithoutThumbnail()` returns all media files whose `thumbnailPath` is empty.
+- `ThumbnailGenerator.queueThumbnails` now deduplicates by file path (`pendingPaths`/`queuedPaths`).
+- The scanner re-queues files with an empty `thumbnailPath` on the next scan (e.g. after an ffmpeg failure), so failed thumbnails are retried.
+- Failed thumbnails now have a retry limit: the new `thumbnailRetries` field on `MediaFile` is incremented on each failure (`Database.incrementThumbnailRetries`), and at most 1 retry is attempted. Files that exceed the limit are skipped on subsequent launches/scans, so a permanently broken file can't block the queue forever.
+- Fixed a bug where the retry logic in `ThumbnailGenerator.processQueue` (`.finally` after `.catch`) could corrupt the queue state: on retry, the item was re-queued but `processing`/`processedCount` were also reset by `.finally`, causing the next item to start processing concurrently. Processing completion is now tracked explicitly via `finishProcessingItem`.
+- Docs (`WORKFLOW`, `ARCHITECTURE`, `DATA`) updated accordingly.
+
 ## 2026-08-10 — Auto-hide the window menu bar
 - The window menu bar (File/Edit/View) is now hidden by default on Windows (`autoHideMenuBar: true`); it can still be shown temporarily with the Alt key.
 

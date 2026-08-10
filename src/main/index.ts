@@ -134,6 +134,12 @@ app.whenReady().then(() => {
         mainWindow.webContents.send(IPC.OnThumbnailReady, { mediaId: media.id, thumbnailPath });
       }
     },
+    (media) => {
+      // Фиксируем неудачную попытку. Максимум 1 ретрай:
+      // первая ошибка — сразу одна неудачная попытка, ретрай — вторая.
+      const canRetry = database.incrementThumbnailRetries(media.id);
+      return canRetry;
+    },
   );
   scanner = new CatalogScanner(database, thumbnailGenerator);
 
@@ -168,6 +174,16 @@ app.whenReady().then(() => {
   });
 
   createWindow();
+
+  // Восстанавливаем обработку превью, прерванную при прошлом запуске:
+  // файлы с пустым thumbnailPath добавляем в очередь генерации.
+  // Это позволяет продолжить с того места, где приложение было остановлено,
+  // и сразу показать прогрессбар в рендерере.
+  // Ждём полной загрузки окна, чтобы рендерер успел подписаться
+  // на события прогресса — иначе первое событие будет потеряно.
+  mainWindow?.webContents.once('did-finish-load', () => {
+    thumbnailGenerator.queueThumbnails(database.getMediaWithoutThumbnail());
+  });
 
   // Фоновое сканирование при старте
   setTimeout(() => {

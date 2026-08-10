@@ -8,6 +8,12 @@ export interface MediaFile {
   modifiedAt: number;
   catalogId: string;
   thumbnailPath: string;
+  /**
+   * Количество неудачных попыток генерации превью.
+   * Используется, чтобы не ретраить бесконечно битые файлы.
+   * Опционально для обратной совместимости со старыми базами.
+   */
+  thumbnailRetries?: number;
 }
 
 export interface Catalog {
