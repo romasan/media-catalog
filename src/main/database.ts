@@ -205,11 +205,19 @@ export class Database {
   }
 
   applyTag(mediaId: string, tagId: string): void {
-    const exists = this.data.mediaTags.some(
-      (r) => r.mediaId === mediaId && r.tagId === tagId,
+    this.applyTagToMedia([mediaId], tagId);
+  }
+
+  applyTagToMedia(mediaIds: string[], tagId: string): void {
+    const existing = new Set(
+      this.data.mediaTags
+        .filter((r) => r.tagId === tagId)
+        .map((r) => r.mediaId),
     );
-    if (!exists) {
-      this.data.mediaTags.push({ mediaId, tagId });
+    for (const mediaId of mediaIds) {
+      if (!existing.has(mediaId)) {
+        this.data.mediaTags.push({ mediaId, tagId });
+      }
     }
     const tag = this.data.tags.find((t) => t.id === tagId);
     if (tag) {

@@ -38,6 +38,7 @@ export const IPC = {
   CreateTag: 'tags:create',
   DeleteTag: 'tags:delete',
   ApplyTag: 'tags:apply',
+  ApplyTagToMedia: 'tags:apply-bulk',
   RemoveTagFromMedia: 'tags:remove-from-media',
 
   // Метатеги
@@ -80,6 +81,7 @@ export interface Api {
   createTag(name: string): Promise<Tag[]>;
   deleteTag(tagId: string): Promise<void>;
   applyTag(mediaId: string, tagId: string): Promise<void>;
+  applyTagToMedia(mediaIds: string[], tagId: string): Promise<void>;
   removeTagFromMedia(mediaId: string, tagId: string): Promise<void>;
 
   getMetaTags(): Promise<MetaTagSearchResult[]>;

@@ -44,6 +44,7 @@ const api: Api = {
   createTag: (name: string) => ipcRenderer.invoke(IPC.CreateTag, name),
   deleteTag: (tagId: string) => ipcRenderer.invoke(IPC.DeleteTag, tagId),
   applyTag: (mediaId: string, tagId: string) => ipcRenderer.invoke(IPC.ApplyTag, mediaId, tagId),
+  applyTagToMedia: (mediaIds: string[], tagId: string) => ipcRenderer.invoke(IPC.ApplyTagToMedia, mediaIds, tagId),
   removeTagFromMedia: (mediaId: string, tagId: string) => ipcRenderer.invoke(IPC.RemoveTagFromMedia, mediaId, tagId),
 
   // Метатеги

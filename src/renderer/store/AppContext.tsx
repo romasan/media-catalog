@@ -18,6 +18,12 @@ interface AppState {
   mediaTotal: number;
   isLoadingMedia: boolean;
   toasts: Toast[];
+  selectedMediaIds: string[];
+
+  // Действия
+  setSelectedMediaIds: React.Dispatch<React.SetStateAction<string[]>>;
+  clearSelection: () => void;
+  applyTagToMedia: (mediaIds: string[], tagId: string) => Promise<void>;
 
   // Действия
   loadCatalogs: () => Promise<void>;
@@ -50,6 +56,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
   const [mediaTotal, setMediaTotal] = useState(0);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [selectedMediaIds, setSelectedMediaIds] = useState<string[]>([]);
 
   const showToast = useCallback((message: string, type: 'info' | 'success' | 'error' = 'info') => {
     const id = Date.now() + Math.random();
@@ -176,6 +183,20 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     setFilterState((prev) => ({ ...prev, mode }));
   }, []);
 
+  const clearSelection = useCallback(() => {
+    setSelectedMediaIds([]);
+  }, []);
+
+  const applyTagToMedia = useCallback(async (mediaIds: string[], tagId: string) => {
+    try {
+      await window.api.applyTagToMedia(mediaIds, tagId);
+      await loadTags();
+    } catch (error) {
+      console.error('Ошибка применения тега:', error);
+      showToast('Ошибка применения тега', 'error');
+    }
+  }, [loadTags, showToast]);
+
   // Подписка на событие готовности превью
   useEffect(() => {
     const unsubscribe = window.api.onThumbnailReady(({ mediaId, thumbnailPath }) => {
@@ -233,6 +254,10 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
       mediaTotal,
       isLoadingMedia,
       toasts,
+      selectedMediaIds,
+      setSelectedMediaIds,
+      clearSelection,
+      applyTagToMedia,
       loadCatalogs,
       loadCatalogStats,
       loadTags,
@@ -260,6 +285,10 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
       mediaTotal,
       isLoadingMedia,
       toasts,
+      selectedMediaIds,
+      setSelectedMediaIds,
+      clearSelection,
+      applyTagToMedia,
       loadCatalogs,
       loadCatalogStats,
       loadTags,

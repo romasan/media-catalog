@@ -4,6 +4,7 @@ import { AppProvider, useApp } from './store/AppContext';
 import { MediaGrid } from './components/MediaGrid';
 import { FilterBar } from './components/FilterBar';
 import { BurgerMenu } from './components/BurgerMenu';
+import { BatchTagBar } from './components/BatchTagBar';
 import { FullscreenViewer } from './components/FullscreenViewer';
 import { ToastContainer } from './components/ToastContainer';
 import { ThumbnailProgressBar } from './components/ThumbnailProgressBar';
@@ -42,6 +43,7 @@ function AppContent(): React.ReactElement {
     <div className="app">
       <FilterBar />
       <MediaGrid onOpenFullscreen={handleOpenFullscreen} />
+      <BatchTagBar />
       <BurgerMenu />
       <ThumbnailProgressBar />
       <ToastContainer />

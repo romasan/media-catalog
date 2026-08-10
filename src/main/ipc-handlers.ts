@@ -182,6 +182,10 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
     database.applyTag(mediaId, tagId);
   });
 
+  ipcMain.handle(IPC.ApplyTagToMedia, (event, mediaIds: string[], tagId: string): void => {
+    database.applyTagToMedia(mediaIds, tagId);
+  });
+
   ipcMain.handle(IPC.RemoveTagFromMedia, (event, mediaId: string, tagId: string): void => {
     database.removeTagFromMedia(mediaId, tagId);
   });

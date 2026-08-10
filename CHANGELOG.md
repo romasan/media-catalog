@@ -1,6 +1,11 @@
 # Changelog
 
-## 2026-08-10 — Meta tags
+## 2026-08-10 — Batch tagging
+- Added multi-select in the media grid: hold `Ctrl`/`Cmd` and click cards to toggle selection; hold `Shift` and click another card to select the whole range between.
+- When at least one card is selected, a batch-tag input bar appears at the bottom center of the screen.
+- Typing in the bar shows tag suggestions (like in fullscreen tag-creation preview); navigate with ArrowUp/ArrowDown and confirm with Enter, or click a suggestion.
+- Pressing Enter with no matching suggestion creates a new tag and applies it to all selected files at once.
+- `window.api.applyTagToMedia(mediaIds, tagId)` batch IPC: applies a tag to multiple media files in a single transaction.
 - Added auto-computed meta tags (year, season, file type) that don't persist, export or can be deleted; shown in gray, filterable, grouped in TagManagerPopup.
 
 ## 2026-08-09

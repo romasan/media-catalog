@@ -44,10 +44,11 @@ function useElementSize(ref: React.RefObject<HTMLDivElement>): { width: number; 
 }
 
 export function MediaGrid({ onOpenFullscreen }: MediaGridProps): React.ReactElement {
-  const { mediaItems, isLoadingMedia } = useApp();
+  const { mediaItems, isLoadingMedia, selectedMediaIds, setSelectedMediaIds, clearSelection } = useApp();
   const containerRef = useRef<HTMLDivElement>(null);
   const { width: containerWidth, height: containerHeight } = useElementSize(containerRef);
   const [scrollTop, setScrollTop] = useState(0);
+  const lastClickedIndexRef = useRef<number | null>(null);
 
   // Вычисляем размер сетки
   const grid = useMemo<GridState>(() => {
@@ -87,6 +88,74 @@ export function MediaGrid({ onOpenFullscreen }: MediaGridProps): React.ReactElem
     setScrollTop(e.currentTarget.scrollTop);
   }, []);
 
+  const handleContainerClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (e.target === e.currentTarget) {
+        clearSelection();
+      }
+    },
+    [clearSelection],
+  );
+
+  const toggleSelection = useCallback(
+    (media: MediaFile) => {
+      const index = mediaItems.findIndex((m) => m.id === media.id);
+      if (index < 0) {
+        return;
+      }
+      setSelectedMediaIds((prev) =>
+        prev.includes(media.id) ? prev.filter((id) => id !== media.id) : [...prev, media.id],
+      );
+      lastClickedIndexRef.current = index;
+    },
+    [mediaItems, setSelectedMediaIds],
+  );
+
+  const handleCardClick = useCallback(
+    (media: MediaFile, e: React.MouseEvent) => {
+      const index = mediaItems.findIndex((m) => m.id === media.id);
+      if (index < 0) {
+        return;
+      }
+
+      // Shift+клик — выделяем диапазон от последнего выбранного элемента
+      if (e.shiftKey && lastClickedIndexRef.current !== null) {
+        const anchor = lastClickedIndexRef.current;
+        const start = Math.min(anchor, index);
+        const end = Math.max(anchor, index);
+        setSelectedMediaIds(mediaItems.slice(start, end + 1).map((m) => m.id));
+        lastClickedIndexRef.current = index;
+        return;
+      }
+
+      // Ctrl/Cmd+клик — переключаем выделение карточки
+      if (e.ctrlKey || e.metaKey) {
+        toggleSelection(media);
+        return;
+      }
+
+      // Обычный клик — открываем просмотр и сбрасываем выделение.
+      // lastClickedIndexRef не обновляем: Shift-выделение должно идти
+      // от последней карточки, выделенной через Ctrl/Cmd, а не от этой.
+      setSelectedMediaIds([]);
+      onOpenFullscreen(media);
+    },
+    [mediaItems, setSelectedMediaIds, onOpenFullscreen, toggleSelection],
+  );
+
+  // На macOS Ctrl+клик эмулирует правый клик: обычный click не приходит,
+  // вместо него срабатывает contextmenu. Обрабатываем Ctrl/Cmd+клик здесь.
+  const handleCardContextMenu = useCallback(
+    (media: MediaFile, e: React.MouseEvent) => {
+      e.preventDefault();
+      if (!(e.ctrlKey || e.metaKey)) {
+        return;
+      }
+      toggleSelection(media);
+    },
+    [toggleSelection],
+  );
+
   const visibleItems = useMemo(() => {
     return mediaItems.slice(grid.visibleStart, grid.visibleEnd);
   }, [mediaItems, grid.visibleStart, grid.visibleEnd]);
@@ -94,7 +163,7 @@ export function MediaGrid({ onOpenFullscreen }: MediaGridProps): React.ReactElem
   const totalHeight = grid.rows * grid.itemSize;
 
   return (
-    <div className="media-grid-container" ref={containerRef} onScroll={handleScroll}>
+    <div className="media-grid-container" ref={containerRef} onScroll={handleScroll} onClick={handleContainerClick}>
       {containerWidth > 0 && (
         <div
           className="media-grid"
@@ -108,10 +177,12 @@ export function MediaGrid({ onOpenFullscreen }: MediaGridProps): React.ReactElem
             const absoluteIndex = grid.visibleStart + index;
             const row = Math.floor(absoluteIndex / grid.columns);
             const col = absoluteIndex % grid.columns;
+            const isSelected = selectedMediaIds.includes(media.id);
             return (
               <MediaCard
                 key={media.id}
                 media={media}
+                isSelected={isSelected}
                 style={{
                   position: 'absolute',
                   top: row * grid.itemSize,
@@ -119,7 +190,8 @@ export function MediaGrid({ onOpenFullscreen }: MediaGridProps): React.ReactElem
                   width: grid.itemSize,
                   height: grid.itemSize,
                 }}
-                onClick={() => onOpenFullscreen(media)}
+                onClick={(e) => handleCardClick(media, e)}
+                onContextMenu={(e) => handleCardContextMenu(media, e)}
               />
             );
           })}
@@ -138,10 +210,12 @@ export function MediaGrid({ onOpenFullscreen }: MediaGridProps): React.ReactElem
 interface MediaCardProps {
   media: MediaFile;
   style: React.CSSProperties;
-  onClick: () => void;
+  isSelected: boolean;
+  onClick: (e: React.MouseEvent) => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }
 
-function MediaCard({ media, style, onClick }: MediaCardProps): React.ReactElement {
+function MediaCard({ media, style, isSelected, onClick, onContextMenu }: MediaCardProps): React.ReactElement {
   const [thumbUrl, setThumbUrl] = useState<string>('');
 
   useEffect(() => {
@@ -171,9 +245,10 @@ function MediaCard({ media, style, onClick }: MediaCardProps): React.ReactElemen
 
   return (
     <div
-      className={`media-card ${isVideo ? 'media-card-video' : ''}`}
+      className={`media-card ${isVideo ? 'media-card-video' : ''} ${isSelected ? 'media-card-selected' : ''}`}
       style={style}
       onClick={onClick}
+      onContextMenu={onContextMenu}
       title={media.name}
     >
       {thumbUrl ? (
