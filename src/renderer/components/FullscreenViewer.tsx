@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { MediaFile, Tag, TagSearchResult } from '../../shared/types';
+import type { MediaFile, MetaTag, Tag, TagSearchResult } from '../../shared/types';
 import { useApp } from '../store/AppContext';
 
 interface FullscreenViewerProps {
@@ -48,6 +48,7 @@ export function FullscreenViewer({
   const [mediaUrl, setMediaUrl] = useState<string>('');
   const [thumbUrl, setThumbUrl] = useState<string>('');
   const [tags, setTags] = useState<Tag[]>([]);
+  const [metaTags, setMetaTags] = useState<MetaTag[]>([]);
   const [allTags, setAllTags] = useState<TagSearchResult[]>([]);
   const [activeInput, setActiveInput] = useState<ActiveTagInput | null>(null);
   const [displayedMedia, setDisplayedMedia] = useState<MediaFile>(media);
@@ -66,6 +67,14 @@ export function FullscreenViewer({
     } catch (error) {
       console.error('Ошибка загрузки тегов:', error);
       setTags([]);
+    }
+
+    try {
+      const meta = await window.api.getMediaMetaTags(mediaItem.id);
+      setMetaTags(meta);
+    } catch (error) {
+      console.error('Ошибка загрузки метатегов:', error);
+      setMetaTags([]);
     }
 
     try {
@@ -320,6 +329,17 @@ export function FullscreenViewer({
           <span>💾 {formatFileSize(displayedMedia.size)}</span>
         </div>
         <div className="fullscreen-tags">
+          {metaTags.map((metaTag) => (
+            <div className="fullscreen-tag fullscreen-meta-tag" key={metaTag.id}>
+              <button
+                className="fullscreen-tag-name"
+                onClick={() => onAddTagToFilter(metaTag.id)}
+                title={`Добавить «${metaTag.name}» в фильтр`}
+              >
+                {metaTag.name}
+              </button>
+            </div>
+          ))}
           {tags.map((tag) => (
             <div className="fullscreen-tag" key={tag.id}>
               <button

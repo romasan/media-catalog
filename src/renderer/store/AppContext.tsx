@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { Catalog, CatalogStats, FilterCondition, MediaFile, ScanResult, TagSearchResult } from '../../shared/types';
+import type { Catalog, CatalogStats, FilterCondition, MediaFile, MetaTagSearchResult, ScanResult, TagSearchResult } from '../../shared/types';
 import type { MediaFilters } from '../../shared/ipc';
 
 interface Toast {
@@ -12,6 +12,7 @@ interface AppState {
   catalogs: Catalog[];
   catalogStats: CatalogStats[];
   tags: TagSearchResult[];
+  metaTags: MetaTagSearchResult[];
   filter: FilterCondition;
   mediaItems: MediaFile[];
   mediaTotal: number;
@@ -22,6 +23,7 @@ interface AppState {
   loadCatalogs: () => Promise<void>;
   loadCatalogStats: () => Promise<void>;
   loadTags: () => Promise<void>;
+  loadMetaTags: () => Promise<void>;
   addCatalog: () => Promise<void>;
   removeCatalog: (catalogId: string) => Promise<void>;
   loadMedia: () => Promise<void>;
@@ -42,6 +44,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [catalogStats, setCatalogStats] = useState<CatalogStats[]>([]);
   const [tags, setTags] = useState<TagSearchResult[]>([]);
+  const [metaTags, setMetaTags] = useState<MetaTagSearchResult[]>([]);
   const [filter, setFilterState] = useState<FilterCondition>({ tagIds: [], mode: 'OR' });
   const [mediaItems, setMediaItems] = useState<MediaFile[]>([]);
   const [mediaTotal, setMediaTotal] = useState(0);
@@ -75,6 +78,11 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     setTags(items);
   }, []);
 
+  const loadMetaTags = useCallback(async () => {
+    const items = await window.api.getMetaTags();
+    setMetaTags(items);
+  }, []);
+
   const loadMedia = useCallback(async () => {
     setIsLoadingMedia(true);
     try {
@@ -98,8 +106,9 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
     }
     await loadCatalogs();
     await loadCatalogStats();
+    await loadMetaTags();
     await loadMedia();
-  }, [showToast, loadCatalogs, loadCatalogStats, loadMedia]);
+  }, [showToast, loadCatalogs, loadCatalogStats, loadMetaTags, loadMedia]);
 
   const exportData = useCallback(async () => {
     try {
@@ -120,13 +129,14 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
       await loadCatalogs();
       await loadCatalogStats();
       await loadTags();
+      await loadMetaTags();
       await loadMedia();
       showToast('Данные импортированы', 'success');
     } catch (error) {
       console.error('Ошибка импорта данных:', error);
       showToast('Ошибка импорта данных', 'error');
     }
-  }, [showToast, loadCatalogs, loadCatalogStats, loadTags, loadMedia]);
+  }, [showToast, loadCatalogs, loadCatalogStats, loadTags, loadMetaTags, loadMedia]);
 
   const addCatalog = useCallback(async () => {
     await window.api.addCatalog();
@@ -197,24 +207,27 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
       }
       loadCatalogs();
       loadCatalogStats();
+      loadMetaTags();
       loadMedia();
     });
     return unsubscribe;
-  }, [showToast, loadCatalogs, loadCatalogStats, loadMedia]);
+  }, [showToast, loadCatalogs, loadCatalogStats, loadMetaTags, loadMedia]);
 
   // Первичная загрузка
   useEffect(() => {
     loadCatalogs();
     loadCatalogStats();
     loadTags();
+    loadMetaTags();
     loadMedia();
-  }, [loadCatalogs, loadCatalogStats, loadTags, loadMedia]);
+  }, [loadCatalogs, loadCatalogStats, loadTags, loadMetaTags, loadMedia]);
 
   const value = useMemo<AppState>(
     () => ({
       catalogs,
       catalogStats,
       tags,
+      metaTags,
       filter,
       mediaItems,
       mediaTotal,
@@ -223,6 +236,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
       loadCatalogs,
       loadCatalogStats,
       loadTags,
+      loadMetaTags,
       addCatalog,
       removeCatalog,
       loadMedia,
@@ -240,6 +254,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
       catalogs,
       catalogStats,
       tags,
+      metaTags,
       filter,
       mediaItems,
       mediaTotal,
@@ -248,6 +263,7 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
       loadCatalogs,
       loadCatalogStats,
       loadTags,
+      loadMetaTags,
       addCatalog,
       removeCatalog,
       loadMedia,

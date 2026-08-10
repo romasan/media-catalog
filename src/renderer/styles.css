@@ -122,9 +122,40 @@ button {
   color: #ff6b6b;
 }
 
+.filter-meta-tag {
+  background: #3a3a3a;
+  color: #aaa;
+}
+
+.filter-meta-tag .filter-tag-name:hover {
+  text-decoration: underline;
+}
+
 .filter-empty {
   font-size: 12px;
   color: #777;
+}
+
+.filter-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #2d4a6b;
+  border-radius: 14px;
+  padding: 3px 8px 3px 10px;
+  font-size: 13px;
+  color: #d6e6f7;
+  white-space: nowrap;
+}
+
+.filter-meta-tag-chip {
+  background: #3a3a3a;
+  color: #aaa;
+}
+
+.filter-meta-tag-chip .filter-tag-name:hover {
+  text-decoration: none;
+  cursor: default;
 }
 
 /* ==== Сетка медиа ==== */
@@ -517,6 +548,46 @@ button {
   padding: 16px 0;
 }
 
+/* ==== Метатеги ==== */
+
+.meta-tags-section {
+  border-top: 1px solid #3a3a3a;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.meta-tags-group-title {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.meta-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.meta-tag-chip {
+  background: #3a3a3a;
+  border: none;
+  border-radius: 12px;
+  color: #aaa;
+  font-size: 12px;
+  padding: 3px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.meta-tag-chip:hover {
+  background: #4a4a4a;
+  color: #ddd;
+}
+
 /* ==== Содержимое попапов ==== */
 
 .popup-content {
@@ -747,6 +818,14 @@ button {
 
 .fullscreen-tag-remove:hover {
   color: #ff6b6b;
+}
+
+.fullscreen-meta-tag {
+  background: #3a3a3a;
+}
+
+.fullscreen-meta-tag .fullscreen-tag-name {
+  color: #aaa;
 }
 
 .add-tag-button {

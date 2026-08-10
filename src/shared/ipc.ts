@@ -3,6 +3,8 @@ import type {
   CatalogStats,
   FilterCondition,
   MediaFile,
+  MetaTag,
+  MetaTagSearchResult,
   ScanResult,
   Tag,
   TagSearchResult,
@@ -37,6 +39,10 @@ export const IPC = {
   DeleteTag: 'tags:delete',
   ApplyTag: 'tags:apply',
   RemoveTagFromMedia: 'tags:remove-from-media',
+
+  // Метатеги
+  GetMetaTags: 'meta-tags:get',
+  GetMediaMetaTags: 'meta-tags:media:get',
 
   // Экспорт/импорт
   ExportData: 'data:export',
@@ -75,6 +81,9 @@ export interface Api {
   deleteTag(tagId: string): Promise<void>;
   applyTag(mediaId: string, tagId: string): Promise<void>;
   removeTagFromMedia(mediaId: string, tagId: string): Promise<void>;
+
+  getMetaTags(): Promise<MetaTagSearchResult[]>;
+  getMediaMetaTags(mediaId: string): Promise<MetaTag[]>;
 
   exportData(): Promise<void>;
   importData(): Promise<ScanResult | null>;

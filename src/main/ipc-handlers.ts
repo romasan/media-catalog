@@ -2,7 +2,8 @@ import { ipcMain, IpcMain, BrowserWindow, OpenDialogOptions, SaveDialogOptions }
 import fs from 'fs';
 import path from 'path';
 import { IPC, MediaFilters, MediaStreamRequest } from '../shared/ipc';
-import type { Catalog, CatalogStats, ImportExportData, MediaFile, ScanResult, Tag, TagSearchResult } from '../shared/types';
+import type { Catalog, CatalogStats, ImportExportData, MediaFile, MetaTag, MetaTagSearchResult, ScanResult, Tag, TagSearchResult } from '../shared/types';
+import { getAllMetaTags, getMediaMatchesMetaTag, getMetaTagsForFile, isMetaTagId } from '../shared/metaTags';
 import { Database } from './database';
 import { CatalogScanner } from './scanner';
 import { ThumbnailGenerator } from './thumbnails';
@@ -95,10 +96,17 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
         );
 
         media = media.filter((m) => {
+          const matches = (tagId: string, index: number): boolean => {
+            if (isMetaTagId(tagId)) {
+              return getMediaMatchesMetaTag(m, tagId);
+            }
+            return mediaIdsByTag[index].has(m.id);
+          };
+
           if (mode === 'AND') {
-            return mediaIdsByTag.every((ids) => ids.has(m.id));
+            return tagIds.every((tagId, index) => matches(tagId, index));
           } else {
-            return mediaIdsByTag.some((ids) => ids.has(m.id));
+            return tagIds.some((tagId, index) => matches(tagId, index));
           }
         });
       }
@@ -176,6 +184,25 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
 
   ipcMain.handle(IPC.RemoveTagFromMedia, (event, mediaId: string, tagId: string): void => {
     database.removeTagFromMedia(mediaId, tagId);
+  });
+
+  // ==== Метатеги ====
+
+  ipcMain.handle(IPC.GetMetaTags, (): MetaTagSearchResult[] => {
+    const files = database.getMediaFiles();
+    const metaTags = getAllMetaTags(files);
+    return metaTags.map((metaTag) => ({
+      metaTag,
+      count: files.filter((file) => getMediaMatchesMetaTag(file, metaTag.id)).length,
+    }));
+  });
+
+  ipcMain.handle(IPC.GetMediaMetaTags, (event, mediaId: string): MetaTag[] => {
+    const file = database.getMediaFileById(mediaId);
+    if (!file) {
+      return [];
+    }
+    return getMetaTagsForFile(file);
   });
 
   // ==== Экспорт/импорт ====

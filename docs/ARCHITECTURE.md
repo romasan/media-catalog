@@ -139,7 +139,8 @@ App
 |-----------|---------|
 | `catalogs`, `catalogStats` | Список каталогов и статистика по ним |
 | `tags` | Список тегов с количеством файлов |
-| `filter` | Активный фильтр `{ tagIds, mode: 'AND' | 'OR' }` |
+| `metaTags` | Список автоматических метатегов (год, сезон, тип файла) |
+| `filter` | Активный фильтр `{ tagIds, mode: 'AND' | 'OR' }` (включая метатеги) |
 | `mediaItems`, `mediaTotal` | Текущие отображаемые файлы и общее количество |
 | `isLoadingMedia` | Флаг загрузки |
 | `toasts` | Всплывающие уведомления |
@@ -156,11 +157,11 @@ App
 |-----------|------|-----------|
 | `MediaGrid` | `components/MediaGrid.tsx` | Виртуализированная сетка: число колонок = `floor(ширина контейнера / 100)`, размер ячейки = `ширина / колонок` — карточки полностью заполняют ширину окна в диапазоне 100–200 px. Рендерит только видимые строки (overscan 3 строки). Использует `ResizeObserver` для отслеживания размеров. |
 | `MediaCard` | внутри `MediaGrid` | Карточка превью. Для видео показывает бейдж ▶. Грузит превью через `window.api.getMediaStreamUrl`. |
-| `FilterBar` | `components/FilterBar.tsx` | Панель выбранных тегов + переключатель AND/OR (виден при >1 теге). |
+| `FilterBar` | `components/FilterBar.tsx` | Панель выбранных тегов + переключатель AND/OR (виден при >1 теге). Метатеги отображаются серыми чипами. |
 | `BurgerMenu` | `components/BurgerMenu.tsx` | Круглая кнопка с попапом меню: «Управление каталогами», «Управление тегами», «Экспорт», «Импорт». |
 | `CatalogManagerPopup` | `components/CatalogManagerPopup.tsx` | Список каталогов, добавление через диалог выбора папки, удаление, статистика фото/видео. |
-| `TagManagerPopup` | `components/TagManagerPopup.tsx` | Поиск/создание тегов, удаление, клик по тегу добавляет его в фильтр. |
-| `FullscreenViewer` | `components/FullscreenViewer.tsx` | Полноэкранный просмотр фото/видео, теги файла, добавление/удаление тегов с автодополнением, стрелки ←/→ для навигации, Esc для закрытия. |
+| `TagManagerPopup` | `components/TagManagerPopup.tsx` | Поиск/создание тегов, удаление, клик по тегу добавляет его в фильтр. В конце отображаются метатеги, сгруппированные по годам/сезонам/типу файла (горизонтальные ряды). |
+| `FullscreenViewer` | `components/FullscreenViewer.tsx` | Полноэкранный просмотр фото/видео, теги файла, добавление/удаление тегов с автодополнением, стрелки ←/→ для навигации, Esc для закрытия. Метатеги файла отображаются серым цветом и не могут быть удалены. |
 | `DraggableResizable` | `components/DraggableResizable.tsx` | Обёртка для попапов: перетаскивание за заголовок, изменение размера за правый нижний угол, минимумы размеров. |
 | `ThumbnailProgressBar` | `components/ThumbnailProgressBar.tsx` | Показывает прогресс генерации превью (%), скрывается через 300 мс после завершения. |
 | `ToastContainer` | `components/ToastContainer.tsx` | Вывод всплывающих уведомлений (типы: info/success/error), клик закрывает. |
@@ -174,6 +175,7 @@ AppProvider mount
   ├─ loadCatalogs()      → IPC 'catalogs:get'
   ├─ loadCatalogStats()  → IPC 'catalogs:stats'
   ├─ loadTags()          → IPC 'tags:get'
+  ├─ loadMetaTags()      → IPC 'meta:tags:get'
   └─ loadMedia()         → IPC 'media:get'  ({ filter })
         │
         ▼

@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-08-10 — Meta tags
+- Added auto-computed meta tags (year, season, file type) that don't persist, export or can be deleted; shown in gray, filterable, grouped in TagManagerPopup.
+
 ## 2026-08-09
 
 Initial implementation of Media Catalog — an Electron + React + TypeScript app for cataloging photos and videos with tags, folder scanning and ffmpeg thumbnails.

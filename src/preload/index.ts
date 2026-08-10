@@ -46,6 +46,10 @@ const api: Api = {
   applyTag: (mediaId: string, tagId: string) => ipcRenderer.invoke(IPC.ApplyTag, mediaId, tagId),
   removeTagFromMedia: (mediaId: string, tagId: string) => ipcRenderer.invoke(IPC.RemoveTagFromMedia, mediaId, tagId),
 
+  // Метатеги
+  getMetaTags: () => ipcRenderer.invoke(IPC.GetMetaTags),
+  getMediaMetaTags: (mediaId: string) => ipcRenderer.invoke(IPC.GetMediaMetaTags, mediaId),
+
   // Экспорт/импорт
   exportData: () => ipcRenderer.invoke(IPC.ExportData),
   importData: () => ipcRenderer.invoke(IPC.ImportData),

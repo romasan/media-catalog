@@ -2,9 +2,10 @@ import React from 'react';
 import { useApp } from '../store/AppContext';
 
 export function FilterBar(): React.ReactElement | null {
-  const { filter, tags, removeTagFromFilter, setFilterMode } = useApp();
+  const { filter, tags, metaTags, removeTagFromFilter, setFilterMode } = useApp();
 
   const selectedTags = tags.filter((t) => filter.tagIds.includes(t.tag.id));
+  const selectedMetaTags = metaTags.filter((m) => filter.tagIds.includes(m.metaTag.id));
 
   if (filter.tagIds.length === 0) {
     return null;
@@ -31,6 +32,21 @@ export function FilterBar(): React.ReactElement | null {
         </div>
       )}
       <div className="filter-tags">
+        {selectedMetaTags.map(({ metaTag }) => (
+          <div className="filter-tag-chip filter-meta-tag-chip" key={metaTag.id}>
+            <span className="filter-tag-name">{metaTag.name}</span>
+            <button
+              className="filter-tag-remove"
+              onClick={() => removeTagFromFilter(metaTag.id)}
+              title="Удалить метатег из фильтра"
+            >
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="4" y1="4" x2="20" y2="20" />
+                <line x1="20" y1="4" x2="4" y2="20" />
+              </svg>
+            </button>
+          </div>
+        ))}
         {selectedTags.map(({ tag }) => (
           <div className="filter-tag-chip" key={tag.id}>
             <span className="filter-tag-name">{tag.name}</span>

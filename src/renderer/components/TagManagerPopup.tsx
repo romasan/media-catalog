@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '../store/AppContext';
 import { DraggableResizable } from './DraggableResizable';
+import { META_TAG_GROUPS } from '../../shared/metaTags';
 
 interface TagManagerPopupProps {
   onClose: () => void;
 }
 
 export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactElement {
-  const { tags, loadTags, addTagToFilter } = useApp();
+  const { tags, metaTags, loadTags, addTagToFilter } = useApp();
   const [query, setQuery] = useState('');
 
   const filteredTags = useMemo(() => {
@@ -18,6 +19,15 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
     }
     return result.slice(0, 30);
   }, [tags, query]);
+
+  const metaTagsByGroup = useMemo(() => {
+    return META_TAG_GROUPS.map(({ kind, group }) => ({
+      group,
+      items: metaTags
+        .filter(({ metaTag }) => metaTag.kind === kind)
+        .map(({ metaTag }) => metaTag),
+    })).filter((g) => g.items.length > 0);
+  }, [metaTags]);
 
   const handleCreateNew = async () => {
     const name = query.trim();
@@ -113,6 +123,28 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
             </div>
           ))}
         </div>
+
+        {metaTagsByGroup.length > 0 && (
+          <div className="meta-tags-section">
+            {metaTagsByGroup.map(({ group, items }) => (
+              <div className="meta-tags-group" key={group}>
+                <div className="meta-tags-group-title">{group}</div>
+                <div className="meta-tags-row">
+                  {items.map((metaTag) => (
+                    <button
+                      className="meta-tag-chip"
+                      key={metaTag.id}
+                      onClick={() => handleTagClick(metaTag.id)}
+                      title={`Добавить «${metaTag.name}» в фильтр`}
+                    >
+                      {metaTag.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </DraggableResizable>
   );

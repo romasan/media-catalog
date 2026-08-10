@@ -51,6 +51,20 @@ export interface TagSearchResult {
   count: number;
 }
 
+export type MetaTagKind = 'year' | 'season' | 'type';
+
+export interface MetaTag {
+  id: string;
+  name: string;
+  kind: MetaTagKind;
+  group: string;
+}
+
+export interface MetaTagSearchResult {
+  metaTag: MetaTag;
+  count: number;
+}
+
 export interface FilterCondition {
   tagIds: string[];
   mode: 'AND' | 'OR';
