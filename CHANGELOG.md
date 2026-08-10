@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-08-10 — Native context menu in fullscreen preview
+- Right-clicking on the media file in the fullscreen preview now opens a native system context menu with a single item «Открыть в проводнике».
+- Clicking the item reveals the file in the OS file manager: `shell.showItemInFolder` works on both Windows (Explorer) and macOS (Finder) by highlighting the file.
+- The menu is rendered as a native Electron `Menu` popup at the cursor position (built in the main process), so it looks and behaves like the OS-native context menu.
+- New IPC channel `ShowItemInFolder` (`media:show-in-folder`) with `ShowItemInFolderRequest` (file path + cursor x/y).
+- The context menu is triggered only when right-clicking on the media itself (image/video), not on empty areas of the preview.
+
 ## 2026-08-10 — Parallel thumbnail generation
 - Thumbnail queue is now processed in parallel: ffmpeg processes run simultaneously, one per logical CPU core (`os.availableParallelism()`, fallback `os.cpus().length`).
 - Each ffmpeg process runs with `-threads 1`, so parallelism comes from a pool of single-threaded processes occupying one core each — all cores are utilized without overloading the system.

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { IPC, Api } from '../shared/ipc';
+import { IPC, Api, ShowItemInFolderRequest } from '../shared/ipc';
 import type { Catalog, CatalogStats, FilterCondition, ImportExportData, MediaFile, ScanResult, Tag, TagSearchResult, ThumbnailProgress } from '../shared/types';
 
 const api: Api = {
@@ -37,6 +37,7 @@ const api: Api = {
   getMedia: (filters) => ipcRenderer.invoke(IPC.GetMedia, filters),
   getMediaTags: (mediaId: string) => ipcRenderer.invoke(IPC.GetMediaTags, mediaId),
   getMediaStreamUrl: (request) => ipcRenderer.invoke(IPC.GetMediaStreamUrl, request),
+  showItemInFolder: (request: ShowItemInFolderRequest) => ipcRenderer.invoke(IPC.ShowItemInFolder, request),
 
   // Теги
   getTags: () => ipcRenderer.invoke(IPC.GetTags),

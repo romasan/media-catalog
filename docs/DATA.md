@@ -220,6 +220,7 @@ JSON-файл:
 | `media:get` | `MediaFilters { filter?, limit?, offset? }` | `{ items: MediaFile[]; total: number }` |
 | `media:tags:get` | `mediaId: string` | `Tag[]` |
 | `media:stream:url` | `MediaStreamRequest { filePath, type }` | `string` (URL `media-stream://...`) |
+| `media:show-in-folder` | `ShowItemInFolderRequest { filePath, x, y }` | — (открывает нативное контекстное меню «Открыть в проводнике») |
 | `meta:tags:get` | — | `MetaTagInfo[]` (год, сезон, тип файла; с количеством файлов) |
 | `tags:get` | — | `TagSearchResult[]` (с счётчиками, сортировка по `lastUsedAt`) |
 | `tags:search` | `query: string` | `TagSearchResult[]` (до 30, по подстроке без учёта регистра) |
@@ -239,3 +240,13 @@ JSON-файл:
 | `thumbnails:ready` | main → renderer | `{ mediaId, thumbnailPath }` |
 
 Все константы каналов определены в `src/shared/ipc.ts`.
+
+### Контекстное меню «Открыть в проводнике»
+
+При ПКМ на медиафайле в полноэкранном просмотре renderer отправляет `ShowItemInFolderRequest` (путь к файлу + координаты курсора). Main-процесс строит **нативный** `Menu` с пунктом «Открыть в проводнике» и показывает его через `menu.popup` в позиции клика. По выбору вызывается `shell.showItemInFolder(filePath)`, который открывает файловый менеджер ОС и выделяет файл:
+
+- **Windows** — Проводник;
+- **macOS** — Finder;
+- **Linux** — файловый менеджер по умолчанию.
+
+Меню рисует сама ОС, поэтому его внешний вид и поведение идентичны системному контекстному меню.

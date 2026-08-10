@@ -31,6 +31,7 @@ export const IPC = {
   GetMedia: 'media:get',
   GetMediaTags: 'media:tags:get',
   GetMediaStreamUrl: 'media:stream:url',
+  ShowItemInFolder: 'media:show-in-folder',
 
   // Теги
   GetTags: 'tags:get',
@@ -55,6 +56,12 @@ export interface MediaStreamRequest {
   type: 'photo' | 'video';
 }
 
+export interface ShowItemInFolderRequest {
+  filePath: string;
+  x: number;
+  y: number;
+}
+
 export interface MediaFilters {
   filter?: FilterCondition;
   limit?: number;
@@ -75,6 +82,7 @@ export interface Api {
   getMedia(filters: MediaFilters): Promise<{ items: MediaFile[]; total: number }>;
   getMediaTags(mediaId: string): Promise<Tag[]>;
   getMediaStreamUrl(request: MediaStreamRequest): Promise<string>;
+  showItemInFolder(request: ShowItemInFolderRequest): Promise<void>;
 
   getTags(): Promise<TagSearchResult[]>;
   searchTags(query: string): Promise<TagSearchResult[]>;

@@ -1,7 +1,7 @@
-import { ipcMain, IpcMain, BrowserWindow, OpenDialogOptions, SaveDialogOptions } from 'electron';
+import { ipcMain, IpcMain, BrowserWindow, Menu, OpenDialogOptions, SaveDialogOptions, shell } from 'electron';
 import fs from 'fs';
 import path from 'path';
-import { IPC, MediaFilters, MediaStreamRequest } from '../shared/ipc';
+import { IPC, MediaFilters, MediaStreamRequest, ShowItemInFolderRequest } from '../shared/ipc';
 import type { Catalog, CatalogStats, ImportExportData, MediaFile, MetaTag, MetaTagSearchResult, ScanResult, Tag, TagSearchResult } from '../shared/types';
 import { UNTAGGED_META_TAG_ID, getAllMetaTags, getMediaMatchesMetaTag, getMetaTagsForFile, isMetaTagId } from '../shared/metaTags';
 import { Database } from './database';
@@ -137,6 +137,23 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
   ipcMain.handle(IPC.GetMediaStreamUrl, (event, request: MediaStreamRequest): string => {
     const encodedPath = Buffer.from(request.filePath).toString('base64url');
     return `media-stream://local/${encodedPath}?type=${request.type}`;
+  });
+
+  // Нативное контекстное меню «Открыть в проводнике»
+  ipcMain.handle(IPC.ShowItemInFolder, (event, request: ShowItemInFolderRequest): void => {
+    const win = BrowserWindow.fromWebContents(event.sender) ?? context.getMainWindow();
+    if (!win) {
+      return;
+    }
+    const menu = Menu.buildFromTemplate([
+      {
+        label: 'Открыть в проводнике',
+        click: () => {
+          shell.showItemInFolder(request.filePath);
+        },
+      },
+    ]);
+    menu.popup({ window: win, x: Math.round(request.x), y: Math.round(request.y) });
   });
 
   // ==== Теги ====

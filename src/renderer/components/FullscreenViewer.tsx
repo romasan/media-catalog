@@ -237,6 +237,20 @@ export function FullscreenViewer({
     [displayedMedia, loadTags],
   );
 
+  const handleMediaContextMenu = useCallback(
+    (e: React.MouseEvent<HTMLImageElement | HTMLVideoElement>) => {
+      // ПКМ только по самому медиафайлу — вызываем нативное контекстное меню «Открыть в проводнике»
+      e.preventDefault();
+      e.stopPropagation();
+      window.api.showItemInFolder({
+        filePath: displayedMedia.path,
+        x: e.clientX,
+        y: e.clientY,
+      });
+    },
+    [displayedMedia.path],
+  );
+
   const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!activeInput) {
       return;
@@ -292,12 +306,18 @@ export function FullscreenViewer({
               controls
               autoPlay
               className="fullscreen-media"
+              onContextMenu={handleMediaContextMenu}
             />
           ) : (
             <div className="fullscreen-placeholder">Не удалось загрузить видео</div>
           )
         ) : mediaUrl ? (
-          <img src={mediaUrl} alt={displayedMedia.name} className="fullscreen-media" />
+          <img
+            src={mediaUrl}
+            alt={displayedMedia.name}
+            className="fullscreen-media"
+            onContextMenu={handleMediaContextMenu}
+          />
         ) : (
           <div className="fullscreen-placeholder">Не удалось загрузить изображение</div>
         )}
