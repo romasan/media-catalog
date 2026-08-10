@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-08-10 — Parallel thumbnail generation
+- Thumbnail queue is now processed in parallel: ffmpeg processes run simultaneously, one per logical CPU core (`os.availableParallelism()`, fallback `os.cpus().length`).
+- Each ffmpeg process runs with `-threads 1`, so parallelism comes from a pool of single-threaded processes occupying one core each — all cores are utilized without overloading the system.
+- Docs (`WORKFLOW`, `ARCHITECTURE`, `DATA`) updated accordingly.
+
 ## 2026-08-10 — Resume thumbnail generation after restart
 - If the app is stopped while thumbnails are being generated, the next launch resumes processing: all files with an empty `thumbnailPath` are re-queued on `did-finish-load` (`database.getMediaWithoutThumbnail()`), and the progress bar immediately shows the remaining files.
 - `Database.getMediaWithoutThumbnail()` returns all media files whose `thumbnailPath` is empty.

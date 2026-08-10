@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { randomUUID } from 'crypto';
+import os from 'os';
 import ffmpegStatic from 'ffmpeg-static';
 import { spawn } from 'child_process';
 import type { MediaFile, ThumbnailProgress } from '../shared/types';
@@ -35,11 +35,25 @@ function getFileCreationDate(filePath: string): number {
   }
 }
 
+/**
+ * Число параллельных ffmpeg-процессов: по одному на доступное логическое ядро CPU.
+ * os.availableParallelism() учитывает quota/affinity процесса и доступен с Node 18.14;
+ * для старых версий используется os.cpus().length.
+ */
+function getConcurrency(): number {
+  const available =
+    typeof os.availableParallelism === 'function'
+      ? os.availableParallelism()
+      : os.cpus().length;
+  return Math.max(1, available);
+}
+
 export class ThumbnailGenerator {
   private thumbnailsDir: string;
   private queue: Array<{ media: MediaFile; filePath: string }> = [];
   private queuedPaths = new Set<string>();
-  private processing = false;
+  private activeCount = 0;
+  private readonly concurrency: number;
   private totalQueued = 0;
   private processedCount = 0;
   private onProgress?: (progress: ThumbnailProgress) => void;
@@ -61,6 +75,11 @@ export class ThumbnailGenerator {
     this.onProgress = onProgress;
     this.onThumbnailReady = onThumbnailReady;
     this.onThumbnailFailed = onThumbnailFailed;
+    // Пул воркеров: по одному ffmpeg-процессу на доступное ядро. Каждый процесс
+    // обрабатывает один файл однопоточно (-threads 1), поэтому параллельность
+    // достигается за счёт пула, а не за счёт многопоточности внутри ffmpeg —
+    // так все ядра задействуются без перегрузки системы.
+    this.concurrency = getConcurrency();
     fs.mkdirSync(this.thumbnailsDir, { recursive: true });
   }
 
@@ -78,7 +97,7 @@ export class ThumbnailGenerator {
     if (addedCount === 0) {
       return;
     }
-    if (!this.processing) {
+    if (this.activeCount === 0) {
       // Сбрасываем счётчики только когда нет активной обработки
       this.totalQueued = this.queue.length;
       this.processedCount = 0;
@@ -112,24 +131,25 @@ export class ThumbnailGenerator {
   }
 
   private processQueue(): void {
-    if (this.processing || this.queue.length === 0) {
-      if (this.queue.length === 0 && !this.processing && this.totalQueued > 0) {
-        // Очередь опустела — отправляем финальный прогресс и сбрасываем
-        this.totalQueued = 0;
-        this.processedCount = 0;
-        this.emitProgress();
+    // Запускаем новые задачи, пока есть свободные слоты и очередь не пуста
+    while (this.activeCount < this.concurrency && this.queue.length > 0) {
+      const next = this.queue.shift();
+      if (!next) {
+        break;
       }
-      return;
-    }
-    this.processing = true;
-
-    const next = this.queue.shift();
-    if (!next) {
-      this.processing = false;
-      return;
+      this.activeCount++;
+      this.processItem(next);
     }
 
-    const current = next;
+    // Очередь полностью обработана — отправляем финальный прогресс и сбрасываем
+    if (this.activeCount === 0 && this.queue.length === 0 && this.totalQueued > 0) {
+      this.totalQueued = 0;
+      this.processedCount = 0;
+      this.emitProgress();
+    }
+  }
+
+  private processItem(current: { media: MediaFile; filePath: string }): void {
     this.generateThumbnail(current.media)
       .then((thumbnailPath) => {
         // Сообщаем о готовности превью (например, для обновления БД)
@@ -154,13 +174,13 @@ export class ThumbnailGenerator {
     current: { media: MediaFile; filePath: string },
     counted: boolean,
   ): void {
-    this.processing = false;
+    this.activeCount--;
     if (counted) {
       this.queuedPaths.delete(current.media.path);
       this.processedCount++;
     }
     // При ретрае (counted === false) файл уже возвращён в начало очереди вызовом
-    // queue.unshift(...) в processQueue, а queuedPaths намеренно не очищается —
+    // queue.unshift(...) в processItem, а queuedPaths намеренно не очищается —
     // иначе повторный queueThumbnails добавил бы дубликат.
     this.emitProgressThrottled();
     this.processQueue();
@@ -218,6 +238,10 @@ export class ThumbnailGenerator {
         '-hide_banner',
         '-loglevel', 'error',
         '-y',
+        // Однопоточная обработка внутри каждого ffmpeg: параллельность достигается
+        // за счёт пула процессов (по одному на ядро), а не за счёт многопоточности
+        // отдельного процесса — иначе N процессов перегрузили бы систему.
+        '-threads', '1',
         '-i', inputPath,
         ...extraArgs,
         '-vf', 'scale=400:400:force_original_aspect_ratio=increase,crop=400:400',
