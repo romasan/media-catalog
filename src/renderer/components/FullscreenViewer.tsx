@@ -345,7 +345,7 @@ export function FullscreenViewer({
           {displayedMedia.path}
         </div>
         <div className="fullscreen-file-meta">
-          <span>📅 {formatDate(displayedMedia.createdAt)}</span>
+          <span>📅 {formatDate(displayedMedia.modifiedAt)}</span>
           <span>💾 {formatFileSize(displayedMedia.size)}</span>
         </div>
         <div className="fullscreen-tags">

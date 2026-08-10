@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-10 — Use modification date for year/season meta tags
+- Year and season meta tags are now computed from the file modification date (`modifiedAt`) instead of creation date (`createdAt`), so editing a file moves it to the correct year/season in filters.
+- Media list is now sorted by `modifiedAt` (newest first) instead of `createdAt` in `ipc-handlers.ts`.
+- Fullscreen preview now shows the modification date (`modifiedAt`) as the displayed date.
+- Docs (`WORKFLOW`, `ARCHITECTURE`, `DATA`) updated accordingly.
+
 ## 2026-08-10 — Native context menu in fullscreen preview
 - Right-clicking on the media file in the fullscreen preview now opens a native system context menu with a single item «Открыть в проводнике».
 - Clicking the item reveals the file in the OS file manager: `shell.showItemInFolder` works on both Windows (Explorer) and macOS (Finder) by highlighting the file.

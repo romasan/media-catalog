@@ -116,8 +116,8 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
         });
       }
 
-      // Сортировка: по дате создания, новые сверху
-      media.sort((a, b) => b.createdAt - a.createdAt);
+      // Сортировка: по дате изменения, новые сверху
+      media.sort((a, b) => b.modifiedAt - a.modifiedAt);
 
       const total = media.length;
       const { limit, offset } = filters;

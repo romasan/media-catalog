@@ -62,8 +62,8 @@ export function isMetaTagId(tagId: string): boolean {
   return tagId.startsWith(META_TAG_PREFIX);
 }
 
-export function getMetaTagsForFile(file: Pick<MediaFile, 'createdAt' | 'type'>): MetaTag[] {
-  const date = new Date(file.createdAt);
+export function getMetaTagsForFile(file: Pick<MediaFile, 'modifiedAt' | 'type'>): MetaTag[] {
+  const date = new Date(file.modifiedAt);
   const year = date.getFullYear();
   const season = getSeason(date.getMonth());
   const typeName = file.type === 'video' ? 'видео' : 'фото';
@@ -75,7 +75,7 @@ export function getMetaTagsForFile(file: Pick<MediaFile, 'createdAt' | 'type'>):
   ];
 }
 
-export function getMediaMatchesMetaTag(file: Pick<MediaFile, 'createdAt' | 'type'>, metaTagId: string): boolean {
+export function getMediaMatchesMetaTag(file: Pick<MediaFile, 'modifiedAt' | 'type'>, metaTagId: string): boolean {
   return getMetaTagsForFile(file).some((metaTag) => metaTag.id === metaTagId);
 }
 
