@@ -1,7 +1,8 @@
+import { observer } from 'mobx-react-lite';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useApp } from '../store/AppContext';
+import { useApp } from '../store/AppStore';
 
-export function BatchTagBar(): React.ReactElement | null {
+export const BatchTagBar = observer(function BatchTagBar(): React.ReactElement | null {
   const { selectedMediaIds, tags, applyTagToMedia, clearSelection } = useApp();
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -106,4 +107,4 @@ export function BatchTagBar(): React.ReactElement | null {
       </div>
     </div>
   );
-}
+});

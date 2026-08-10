@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-10 — Replace React context store with MobX
+- Replaced `AppContext.tsx` (React Context + reducer) with a MobX store `src/renderer/store/AppStore.ts`.
+- `AppStore` is a singleton (`makeAutoObservable`) exposing reactive state (catalogs, tags, meta tags, filter, media items, selection, toasts) and actions (loaders, filters, selection, export/import, toasts).
+- Components that read the store are wrapped in `observer()` from `mobx-react-lite`; they re-render only when the observed state actually changes.
+- `useApp()` hook now returns the single `appStore` instance instead of reading a Context.
+- Deleted `AppContext.tsx`; all imports updated from `store/AppContext` to `store/AppStore`.
+- Added `mobx` and `mobx-react-lite` dependencies.
+- Docs (`ARCHITECTURE`) updated accordingly.
+
 ## 2026-08-10 — Show capture date from metadata in fullscreen viewer
 - The fullscreen viewer now lazily reads the capture date from file metadata (EXIF `DateTimeOriginal`/`CreateDate` for photos via exifr, `creation_time` for videos via ffmpeg) and shows it in the file info when it differs from the file modification date.
 - The capture date is cached in the database as the optional `capturedAt` field on `MediaFile` (new IPC channel `GetMediaCaptureDate` / `media:capture-date:get`).

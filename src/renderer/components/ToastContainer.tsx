@@ -1,7 +1,8 @@
+import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { useApp } from '../store/AppContext';
+import { useApp } from '../store/AppStore';
 
-export function ToastContainer(): React.ReactElement {
+export const ToastContainer = observer(function ToastContainer(): React.ReactElement {
   const { toasts, dismissToast } = useApp();
 
   return (
@@ -17,4 +18,4 @@ export function ToastContainer(): React.ReactElement {
       ))}
     </div>
   );
-}
+});

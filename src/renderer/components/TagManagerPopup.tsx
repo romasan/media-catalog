@@ -1,6 +1,7 @@
+import { observer } from 'mobx-react-lite';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useApp } from '../store/AppContext';
+import { useApp } from '../store/AppStore';
 import { DraggableResizable } from './DraggableResizable';
 import { META_TAG_GROUPS } from '../../shared/metaTags';
 import type { TagSearchResult } from '../../shared/types';
@@ -21,7 +22,7 @@ function pluralize(count: number, one: string, few: string, many: string): strin
   return many;
 }
 
-export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactElement {
+export const TagManagerPopup = observer(function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactElement {
   const { tags, metaTags, loadTags, addTagToFilter } = useApp();
   const [query, setQuery] = useState('');
   const [tagPendingDelete, setTagPendingDelete] = useState<TagSearchResult | null>(null);
@@ -229,4 +230,4 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
       </div>
     </DraggableResizable>
   );
-}
+});

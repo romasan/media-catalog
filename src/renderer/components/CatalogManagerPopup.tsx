@@ -1,12 +1,13 @@
+import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { useApp } from '../store/AppContext';
+import { useApp } from '../store/AppStore';
 import { DraggableResizable } from './DraggableResizable';
 
 interface CatalogManagerPopupProps {
   onClose: () => void;
 }
 
-export function CatalogManagerPopup({ onClose }: CatalogManagerPopupProps): React.ReactElement {
+export const CatalogManagerPopup = observer(function CatalogManagerPopup({ onClose }: CatalogManagerPopupProps): React.ReactElement {
   const { catalogs, catalogStats, addCatalog, removeCatalog, runScan } = useApp();
 
   const handleAddCatalog = async () => {
@@ -74,4 +75,4 @@ export function CatalogManagerPopup({ onClose }: CatalogManagerPopupProps): Reac
       </div>
     </DraggableResizable>
   );
-}
+});

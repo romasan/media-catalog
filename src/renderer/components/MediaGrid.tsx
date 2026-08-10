@@ -1,5 +1,6 @@
+import { observer } from 'mobx-react-lite';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useApp } from '../store/AppContext';
+import { useApp } from '../store/AppStore';
 import type { MediaFile } from '../../shared/types';
 
 interface MediaGridProps {
@@ -43,7 +44,7 @@ function useElementSize(ref: React.RefObject<HTMLDivElement>): { width: number; 
   return size;
 }
 
-export function MediaGrid({ onOpenFullscreen }: MediaGridProps): React.ReactElement {
+export const MediaGrid = observer(function MediaGrid({ onOpenFullscreen }: MediaGridProps): React.ReactElement {
   const { mediaItems, isLoadingMedia, selectedMediaIds, setSelectedMediaIds, clearSelection } = useApp();
   const containerRef = useRef<HTMLDivElement>(null);
   const { width: containerWidth, height: containerHeight } = useElementSize(containerRef);
@@ -205,7 +206,7 @@ export function MediaGrid({ onOpenFullscreen }: MediaGridProps): React.ReactElem
       )}
     </div>
   );
-}
+});
 
 interface MediaCardProps {
   media: MediaFile;

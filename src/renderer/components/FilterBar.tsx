@@ -1,7 +1,8 @@
+import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { useApp } from '../store/AppContext';
+import { useApp } from '../store/AppStore';
 
-export function FilterBar(): React.ReactElement | null {
+export const FilterBar = observer(function FilterBar(): React.ReactElement | null {
   const { filter, tags, metaTags, removeTagFromFilter, setFilterMode } = useApp();
 
   const selectedTags = tags.filter((t) => filter.tagIds.includes(t.tag.id));
@@ -65,4 +66,4 @@ export function FilterBar(): React.ReactElement | null {
       </div>
     </div>
   );
-}
+});

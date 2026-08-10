@@ -1,11 +1,12 @@
+import { observer } from 'mobx-react-lite';
 import React, { useState } from 'react';
 import { CatalogManagerPopup } from './CatalogManagerPopup';
 import { TagManagerPopup } from './TagManagerPopup';
-import { useApp } from '../store/AppContext';
+import { useApp } from '../store/AppStore';
 
 type ActivePopup = 'catalogs' | 'tags' | null;
 
-export function BurgerMenu(): React.ReactElement {
+export const BurgerMenu = observer(function BurgerMenu(): React.ReactElement {
   const { exportData, importData } = useApp();
   const [isOpen, setIsOpen] = useState(false);
   const [activePopup, setActivePopup] = useState<ActivePopup>(null);
@@ -83,4 +84,4 @@ export function BurgerMenu(): React.ReactElement {
       )}
     </>
   );
-}
+});

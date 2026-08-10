@@ -12,7 +12,7 @@
 │  │  Main-процесс   │  IPC   │  Renderer-процесс    │    │
 │  │  (Node.js)      │◄──────►│  (React/Chromium)    │    │
 │  │                 │        │                      │    │
-│  │  Database       │        │  AppContext (store)  │    │
+│  │  Database       │        │  AppStore (MobX)     │    │
 │  │  Scanner        │        │  UI-компоненты       │    │
 │  │  Thumbnails     │        │                      │    │
 │  │  Metadata       │        │                      │    │
@@ -152,8 +152,7 @@ Renderer получает доступ через `window.api` (типизиро
 
 ```
 App
-└── AppProvider (store/AppContext)
-    └── AppContent
+└── AppContent (observer)
         ├── FilterBar           — панель фильтра по тегам
         ├── MediaGrid           — виртуализированная сетка превью
         ├── BurgerMenu          — кнопка-меню (управление каталогами/тегами)
@@ -164,9 +163,9 @@ App
 
 `AppContent` хранит `fullscreenIndex` — индекс открытого в полноэкранном режиме файла. Навигация циклическая: `(prev + direction + length) % length`.
 
-### `src/renderer/store/AppContext.tsx` — глобальное состояние
+### `src/renderer/store/AppStore.ts` — глобальное состояние (MobX)
 
-Единый источник правды для UI:
+Единый источник правды для UI на базе **MobX** (`makeAutoObservable`, синглтон `appStore`). Компоненты, читающие стор, оборачиваются в `observer()` из `mobx-react-lite` для реактивных перерисовок.
 
 | Состояние | Описание |
 |-----------|---------|
@@ -204,7 +203,7 @@ App
 ### Загрузка приложения
 
 ```
-AppProvider mount
+appStore (инициализация в конструкторе)
   ├─ loadCatalogs()      → IPC 'catalogs:get'
   ├─ loadCatalogStats()  → IPC 'catalogs:stats'
   ├─ loadTags()          → IPC 'tags:get'

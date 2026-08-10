@@ -1,6 +1,7 @@
+import { observer } from 'mobx-react-lite';
 import React, { useCallback, useState } from 'react';
 import './styles.css';
-import { AppProvider, useApp } from './store/AppContext';
+import { useApp } from './store/AppStore';
 import { MediaGrid } from './components/MediaGrid';
 import { FilterBar } from './components/FilterBar';
 import { BurgerMenu } from './components/BurgerMenu';
@@ -10,7 +11,7 @@ import { ToastContainer } from './components/ToastContainer';
 import { ThumbnailProgressBar } from './components/ThumbnailProgressBar';
 import type { MediaFile } from '../shared/types';
 
-function AppContent(): React.ReactElement {
+const AppContent = observer(function AppContent(): React.ReactElement {
   const { mediaItems, addTagToFilter } = useApp();
   const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
 
@@ -57,12 +58,8 @@ function AppContent(): React.ReactElement {
       )}
     </div>
   );
-}
+});
 
 export default function App(): React.ReactElement {
-  return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
-  );
+  return <AppContent />;
 }

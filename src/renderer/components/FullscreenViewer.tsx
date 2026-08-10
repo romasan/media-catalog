@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MediaFile, MetaTag, Tag, TagSearchResult } from '../../shared/types';
-import { useApp } from '../store/AppContext';
+import { useApp } from '../store/AppStore';
 
 interface FullscreenViewerProps {
   media: MediaFile;
