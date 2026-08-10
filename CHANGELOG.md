@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-08-10 — "Без тега" meta tag
+- Added a special `untagged` meta tag (`meta:untagged`, shown as «без тега») in the "Прочее" group of the tag manager.
+- The tag matches only files that have no regular (non-meta) tags, allowing the filter to show all untagged files at once.
+- When «без тега» is added to the filter, any regular tags are removed from the filter; conversely, adding a regular tag removes «без тега» from the filter.
+- `Database.getTaggedMediaIds()` and `UNTAGGED_META_TAG_ID` support the new meta tag in both filtering and count display.
+
 ## 2026-08-10 — Batch tagging
 - Added multi-select in the media grid: hold `Ctrl`/`Cmd` and click cards to toggle selection; hold `Shift` and click another card to select the whole range between.
 - When at least one card is selected, a batch-tag input bar appears at the bottom center of the screen.

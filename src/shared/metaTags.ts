@@ -2,10 +2,20 @@ import type { MediaFile, MetaTag, MetaTagKind } from './types';
 
 export const META_TAG_PREFIX = 'meta:';
 
+export const UNTAGGED_META_TAG_ID = `${META_TAG_PREFIX}untagged`;
+export const UNTAGGED_META_TAG_GROUP = 'Прочее';
+export const UNTAGGED_META_TAG: MetaTag = {
+  id: UNTAGGED_META_TAG_ID,
+  name: 'без тега',
+  kind: 'untagged',
+  group: UNTAGGED_META_TAG_GROUP,
+};
+
 export const META_TAG_GROUPS: Array<{ kind: MetaTagKind; group: string }> = [
   { kind: 'year', group: 'Годы' },
   { kind: 'season', group: 'Времена года' },
   { kind: 'type', group: 'Тип файла' },
+  { kind: 'untagged', group: UNTAGGED_META_TAG_GROUP },
 ];
 
 const SEASON_NAMES: Array<{ name: string; months: number[] }> = [
@@ -21,6 +31,9 @@ export function getSeason(month: number): string {
 }
 
 export function getMetaTagById(metaTagId: string): MetaTag | null {
+  if (metaTagId === UNTAGGED_META_TAG_ID) {
+    return UNTAGGED_META_TAG;
+  }
   if (!metaTagId.startsWith(META_TAG_PREFIX)) {
     return null;
   }
@@ -104,6 +117,9 @@ export function getAllMetaTags(files: MediaFile[]): MetaTag[] {
   for (const type of types) {
     metaTags.push({ id: `${META_TAG_PREFIX}type:${type}`, name: type, kind: 'type', group: 'Тип файла' });
   }
+
+  // "Без тега" - всегда доступен в группе "Прочее"
+  metaTags.push(UNTAGGED_META_TAG);
 
   return metaTags;
 }

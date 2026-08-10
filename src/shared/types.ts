@@ -51,7 +51,7 @@ export interface TagSearchResult {
   count: number;
 }
 
-export type MetaTagKind = 'year' | 'season' | 'type';
+export type MetaTagKind = 'year' | 'season' | 'type' | 'untagged';
 
 export interface MetaTag {
   id: string;

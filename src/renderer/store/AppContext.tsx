@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Catalog, CatalogStats, FilterCondition, MediaFile, MetaTagSearchResult, ScanResult, TagSearchResult } from '../../shared/types';
 import type { MediaFilters } from '../../shared/ipc';
+import { UNTAGGED_META_TAG_ID, isMetaTagId } from '../../shared/metaTags';
 
 interface Toast {
   id: number;
@@ -168,6 +169,23 @@ export function AppProvider({ children }: { children: React.ReactNode }): React.
       if (prev.tagIds.includes(tagId)) {
         return prev;
       }
+
+      // Если добавляем метатег «без тега» — убираем из фильтра все обычные теги
+      if (tagId === UNTAGGED_META_TAG_ID) {
+        return {
+          ...prev,
+          tagIds: [...prev.tagIds.filter((id) => isMetaTagId(id)), tagId],
+        };
+      }
+
+      // Если добавляем обычный тег (или другой метатег) — убираем метатег «без тега»
+      if (prev.tagIds.includes(UNTAGGED_META_TAG_ID)) {
+        return {
+          ...prev,
+          tagIds: [...prev.tagIds.filter((id) => id !== UNTAGGED_META_TAG_ID), tagId],
+        };
+      }
+
       return { ...prev, tagIds: [...prev.tagIds, tagId] };
     });
   }, []);

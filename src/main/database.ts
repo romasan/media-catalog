@@ -253,6 +253,10 @@ export class Database {
     );
   }
 
+  getTaggedMediaIds(): Set<string> {
+    return new Set(this.data.mediaTags.map((r) => r.mediaId));
+  }
+
   getMediaTagRelations(): MediaTagRelation[] {
     return [...this.data.mediaTags];
   }

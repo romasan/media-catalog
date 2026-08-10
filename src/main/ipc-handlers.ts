@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { IPC, MediaFilters, MediaStreamRequest } from '../shared/ipc';
 import type { Catalog, CatalogStats, ImportExportData, MediaFile, MetaTag, MetaTagSearchResult, ScanResult, Tag, TagSearchResult } from '../shared/types';
-import { getAllMetaTags, getMediaMatchesMetaTag, getMetaTagsForFile, isMetaTagId } from '../shared/metaTags';
+import { UNTAGGED_META_TAG_ID, getAllMetaTags, getMediaMatchesMetaTag, getMetaTagsForFile, isMetaTagId } from '../shared/metaTags';
 import { Database } from './database';
 import { CatalogScanner } from './scanner';
 import { ThumbnailGenerator } from './thumbnails';
@@ -95,9 +95,14 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
           database.getMediaIdsByTag(tagId),
         );
 
-        media = media.filter((m) => {
+        const taggedMediaIds = database.getTaggedMediaIds();
+
+      media = media.filter((m) => {
           const matches = (tagId: string, index: number): boolean => {
             if (isMetaTagId(tagId)) {
+              if (tagId === UNTAGGED_META_TAG_ID) {
+                return !taggedMediaIds.has(m.id);
+              }
               return getMediaMatchesMetaTag(m, tagId);
             }
             return mediaIdsByTag[index].has(m.id);
@@ -195,9 +200,13 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
   ipcMain.handle(IPC.GetMetaTags, (): MetaTagSearchResult[] => {
     const files = database.getMediaFiles();
     const metaTags = getAllMetaTags(files);
+    const taggedMediaIds = database.getTaggedMediaIds();
     return metaTags.map((metaTag) => ({
       metaTag,
-      count: files.filter((file) => getMediaMatchesMetaTag(file, metaTag.id)).length,
+      count:
+        metaTag.id === UNTAGGED_META_TAG_ID
+          ? files.filter((file) => !taggedMediaIds.has(file.id)).length
+          : files.filter((file) => getMediaMatchesMetaTag(file, metaTag.id)).length,
     }));
   });
 
