@@ -52,6 +52,7 @@ export function FullscreenViewer({
   const [allTags, setAllTags] = useState<TagSearchResult[]>([]);
   const [activeInput, setActiveInput] = useState<ActiveTagInput | null>(null);
   const [displayedMedia, setDisplayedMedia] = useState<MediaFile>(media);
+  const [captureDate, setCaptureDate] = useState<number | null>(media.capturedAt ?? null);
   const inputRef = useRef<HTMLInputElement>(null);
   const nextInputId = useRef(1);
 
@@ -60,6 +61,15 @@ export function FullscreenViewer({
     setMediaUrl('');
     setThumbUrl('');
     setActiveInput(null);
+    setCaptureDate(mediaItem.capturedAt ?? null);
+
+    // Пытаемся получить дату съёмки из метаданных файла (EXIF / creation_time)
+    try {
+      const captured = await window.api.getMediaCaptureDate(mediaItem.id);
+      setCaptureDate(captured);
+    } catch (error) {
+      console.error('Ошибка чтения даты съёмки:', error);
+    }
 
     try {
       const mediaTags = await window.api.getMediaTags(mediaItem.id);
@@ -346,6 +356,9 @@ export function FullscreenViewer({
         </div>
         <div className="fullscreen-file-meta">
           <span>📅 {formatDate(displayedMedia.modifiedAt)}</span>
+          {captureDate !== null && formatDate(captureDate) !== formatDate(displayedMedia.modifiedAt) && (
+            <span title="Дата съёмки из метаданных">📷 {formatDate(captureDate)}</span>
+          )}
           <span>💾 {formatFileSize(displayedMedia.size)}</span>
         </div>
         <div className="fullscreen-tags">

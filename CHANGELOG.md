@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-10 — Show capture date from metadata in fullscreen viewer
+- The fullscreen viewer now lazily reads the capture date from file metadata (EXIF `DateTimeOriginal`/`CreateDate` for photos via exifr, `creation_time` for videos via ffmpeg) and shows it in the file info when it differs from the file modification date.
+- The capture date is cached in the database as the optional `capturedAt` field on `MediaFile` (new IPC channel `GetMediaCaptureDate` / `media:capture-date:get`).
+
 ## 2026-08-10 — App icon from favicon.ico
 - Replaced the default app icon with `/Users/r.bauer/Downloads/favicon.ico` (scaled via nearest-neighbor, no blur) for the window, Windows installer (.ico), macOS bundle (.icns) and Linux (AppImage).
 

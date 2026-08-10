@@ -14,6 +14,12 @@ export interface MediaFile {
    * Опционально для обратной совместимости со старыми базами.
    */
   thumbnailRetries?: number;
+  /**
+   * Дата съёмки из метаданных файла (EXIF для фото, creation_time для видео).
+   * Заполняется лениво при открытии полноэкранного просмотра и сохраняется в БД.
+   * Опционально для обратной совместимости со старыми базами.
+   */
+  capturedAt?: number;
 }
 
 export interface Catalog {
@@ -87,5 +93,6 @@ export interface ImportExportData {
     createdAt: number;
     modifiedAt: number;
     size: number;
+    capturedAt?: number;
   }>;
 }

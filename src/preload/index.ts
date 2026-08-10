@@ -38,6 +38,7 @@ const api: Api = {
   getMediaTags: (mediaId: string) => ipcRenderer.invoke(IPC.GetMediaTags, mediaId),
   getMediaStreamUrl: (request) => ipcRenderer.invoke(IPC.GetMediaStreamUrl, request),
   showItemInFolder: (request: ShowItemInFolderRequest) => ipcRenderer.invoke(IPC.ShowItemInFolder, request),
+  getMediaCaptureDate: (mediaId: string) => ipcRenderer.invoke(IPC.GetMediaCaptureDate, mediaId),
 
   // Теги
   getTags: () => ipcRenderer.invoke(IPC.GetTags),

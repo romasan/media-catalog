@@ -7,6 +7,7 @@ import { UNTAGGED_META_TAG_ID, getAllMetaTags, getMediaMatchesMetaTag, getMetaTa
 import { Database } from './database';
 import { CatalogScanner } from './scanner';
 import { ThumbnailGenerator } from './thumbnails';
+import { readCaptureDate } from './metadata';
 
 export interface IpcHandlerContext {
   ipcMain: IpcMain;
@@ -139,6 +140,28 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
     return `media-stream://local/${encodedPath}?type=${request.type}`;
   });
 
+  // Дата съёмки из метаданных (EXIF / creation_time контейнера).
+  // Берёт значение из БД, если оно уже было определено, иначе читает
+  // метаданные файла, сохраняет результат в БД и возвращает.
+  ipcMain.handle(IPC.GetMediaCaptureDate, async (event, mediaId: string): Promise<number | null> => {
+    const media = database.getMediaFileById(mediaId);
+    if (!media) {
+      return null;
+    }
+
+    if (media.capturedAt !== undefined) {
+      return media.capturedAt;
+    }
+
+    const capturedAt = await readCaptureDate(media.path, media.type);
+    if (capturedAt !== null) {
+      database.updateCapturedAt(media.id, capturedAt);
+      // Обновляем объект в памяти, чтобы последующие вызовы не читали файл заново
+      media.capturedAt = capturedAt;
+    }
+    return capturedAt;
+  });
+
   // Нативное контекстное меню «Открыть в проводнике»
   ipcMain.handle(IPC.ShowItemInFolder, (event, request: ShowItemInFolderRequest): void => {
     const win = BrowserWindow.fromWebContents(event.sender) ?? context.getMainWindow();
@@ -254,6 +277,7 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
         createdAt: m.createdAt,
         modifiedAt: m.modifiedAt,
         size: m.size,
+        capturedAt: m.capturedAt,
       })),
     };
 
@@ -329,6 +353,7 @@ export function registerIpcHandlers(context: IpcHandlerContext): void {
           catalogId: '',
           thumbnailPath: '',
           thumbnailRetries: 0,
+          capturedAt: file.capturedAt,
         });
       }
 

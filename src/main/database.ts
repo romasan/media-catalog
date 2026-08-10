@@ -161,6 +161,21 @@ export class Database {
     }
   }
 
+  /**
+   * Сохраняет дату съёмки, извлечённую из метаданных файла.
+   */
+  updateCapturedAt(mediaId: string, capturedAt: number): boolean {
+    const file = this.data.mediaFiles.find((m) => m.id === mediaId);
+    if (file) {
+      if (file.capturedAt !== capturedAt) {
+        file.capturedAt = capturedAt;
+        this.save();
+      }
+      return true;
+    }
+    return false;
+  }
+
   // ==== Теги ====
 
   getTags(): Tag[] {

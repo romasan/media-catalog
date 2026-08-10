@@ -32,6 +32,7 @@ export const IPC = {
   GetMediaTags: 'media:tags:get',
   GetMediaStreamUrl: 'media:stream:url',
   ShowItemInFolder: 'media:show-in-folder',
+  GetMediaCaptureDate: 'media:capture-date',
 
   // Теги
   GetTags: 'tags:get',
@@ -83,6 +84,7 @@ export interface Api {
   getMediaTags(mediaId: string): Promise<Tag[]>;
   getMediaStreamUrl(request: MediaStreamRequest): Promise<string>;
   showItemInFolder(request: ShowItemInFolderRequest): Promise<void>;
+  getMediaCaptureDate(mediaId: string): Promise<number | null>;
 
   getTags(): Promise<TagSearchResult[]>;
   searchTags(query: string): Promise<TagSearchResult[]>;

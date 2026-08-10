@@ -35,6 +35,7 @@
       "size": 123456,
       "createdAt": 1710000000000,
       "modifiedAt": 1710000000000,
+      "capturedAt": 1710000000000,
       "catalogId": "uuid",
       "thumbnailPath": "/path/to/thumbnails/abc123.jpg"
     }
@@ -76,6 +77,7 @@
 
 - **`MediaFile.createdAt`** — время создания файла (`birthtime`), либо `mtime` как запасной вариант, либо `Date.now()` при ошибке.
 - **`MediaFile.modifiedAt`** — `mtime` файла. Выступает как признак изменённого файла при сканировании (сравнивается вместе с `size`).
+- **`MediaFile.capturedAt`** *(опционально)* — дата съёмки из метаданных файла (EXIF `DateTimeOriginal` для фото, `creation_time` для видео). Заполняется **лениво** при открытии полноэкранного просмотра через канал `media:capture-date:get`; результат кэшируется в базе, поэтому повторное открытие не перечитывает метаданные. Отсутствует у файлов без метаданных даты или у старых записей (до появления поля).
 - **`Tag.name`** — имя тега, всегда в **нижнем регистре**. Тег считается дубликатом по имени без учёта регистра (`findTagByName`), поэтому «foo», «Foo» и «fOo» — один и тот же тег. При загрузке базы старые теги с буквами верхнего регистра приводятся к нижнему регистру, а дубликаты объединяются (связи `mediaTags` перенаправляются на сохраняемый тег).
 - **`Tag.lastUsedAt`** — timestamp последнего применения тега к файлу. Используется для сортировки тегов: более «свежие» теги выше; теги без использований (`0`) — в конце списка.
 - **`thumbnailPath`** — абсолютный путь к JPG-превью (или пустая строка, если превью ещё не сгенерировано).
@@ -220,6 +222,7 @@ JSON-файл:
 | `media:get` | `MediaFilters { filter?, limit?, offset? }` | `{ items: MediaFile[]; total: number }` |
 | `media:tags:get` | `mediaId: string` | `Tag[]` |
 | `media:stream:url` | `MediaStreamRequest { filePath, type }` | `string` (URL `media-stream://...`) |
+| `media:capture-date:get` | `GetMediaCaptureDateRequest { filePath, type }` | `number \| null` (timestamp даты съёмки из метаданных; `null` — нет метаданных или ошибка чтения) |
 | `media:show-in-folder` | `ShowItemInFolderRequest { filePath, x, y }` | — (открывает нативное контекстное меню «Открыть в проводнике») |
 | `meta:tags:get` | — | `MetaTagInfo[]` (год, сезон, тип файла; с количеством файлов) |
 | `tags:get` | — | `TagSearchResult[]` (с счётчиками, сортировка по `lastUsedAt`) |
