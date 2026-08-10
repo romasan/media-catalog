@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-08-10 — Meta tags above tag search
+- Moved the meta-tag chips (years, seasons, file types, «без тега») in the tag manager popup above the tag search input, so they are visible without scrolling.
+- Tag list still grows below the search row; popup layout and drag/resize behavior are unchanged.
+
 ## 2026-08-10 — "Без тега" meta tag
 - Added a special `untagged` meta tag (`meta:untagged`, shown as «без тега») in the "Прочее" group of the tag manager.
 - The tag matches only files that have no regular (non-meta) tags, allowing the filter to show all untagged files at once.

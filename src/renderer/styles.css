@@ -551,8 +551,6 @@ button {
 /* ==== Метатеги ==== */
 
 .meta-tags-section {
-  border-top: 1px solid #3a3a3a;
-  padding-top: 10px;
   display: flex;
   flex-direction: column;
   gap: 10px;

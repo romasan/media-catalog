@@ -75,6 +75,28 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
       minHeight={300}
     >
       <div className="popup-content tag-manager">
+        {metaTagsByGroup.length > 0 && (
+          <div className="meta-tags-section">
+            {metaTagsByGroup.map(({ group, items }) => (
+              <div className="meta-tags-group" key={group}>
+                <div className="meta-tags-group-title">{group}</div>
+                <div className="meta-tags-row">
+                  {items.map((metaTag) => (
+                    <button
+                      className="meta-tag-chip"
+                      key={metaTag.id}
+                      onClick={() => handleTagClick(metaTag.id)}
+                      title={`Добавить «${metaTag.name}» в фильтр`}
+                    >
+                      {metaTag.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="tag-search-row">
           <input
             className="tag-search-input"
@@ -87,7 +109,7 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
           />
           {query.trim() && !exists && (
             <button className="tag-create-button" onClick={handleCreateNew}>
-              Создать «{query.trim()}»
+              Создать
             </button>
           )}
         </div>
@@ -123,28 +145,6 @@ export function TagManagerPopup({ onClose }: TagManagerPopupProps): React.ReactE
             </div>
           ))}
         </div>
-
-        {metaTagsByGroup.length > 0 && (
-          <div className="meta-tags-section">
-            {metaTagsByGroup.map(({ group, items }) => (
-              <div className="meta-tags-group" key={group}>
-                <div className="meta-tags-group-title">{group}</div>
-                <div className="meta-tags-row">
-                  {items.map((metaTag) => (
-                    <button
-                      className="meta-tag-chip"
-                      key={metaTag.id}
-                      onClick={() => handleTagClick(metaTag.id)}
-                      title={`Добавить «${metaTag.name}» в фильтр`}
-                    >
-                      {metaTag.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </DraggableResizable>
   );
