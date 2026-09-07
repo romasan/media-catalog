@@ -22,6 +22,12 @@
   padding: 3px;
 }
 
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .filter-mode-toggle button {
   flex: 1;
   padding: 4px 10px;
@@ -38,9 +44,20 @@
 }
 
 .filter-tags {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+
+.filter-count {
+  flex-shrink: 0;
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
 }
 
 .filter-tag-chip {

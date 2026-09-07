@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-09-07 — Show photo/video counts in the filter bar
+- Filter bar is now always visible and shows a photo/video counter (📷 N 🎬 M) to the right of the selected tags; it reflects the active filter, or the total records when the filter is empty.
+
 ## 2026-09-07 — Put each component into its own folder under `src/renderer/components/<Name>/`
 - Moved each `<Name>.tsx` + `<Name>.module.css` pair into a dedicated `components/<Name>/` subfolder; imports in `App.tsx` and cross-component imports updated.
 
