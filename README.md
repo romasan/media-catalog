@@ -58,19 +58,20 @@ npm run typecheck      # проверка типов main и preload
 │       ├── App.tsx         # Корневой компонент
 │       ├── main.tsx        # Точка входа React
 │       ├── global.d.ts     # Типизация window.api
-│       ├── styles.css      # Стили
+│       ├── App.css         # Глобальные стили (reset, body, .app, скроллбар)
 │       ├── store/
 │       │   └── AppContext.tsx  # Глобальное состояние и бизнес-логика UI
-│       └── components/     # UI-компоненты
-│           ├── MediaGrid.tsx           # Виртуализированная сетка превью
-│           ├── FilterBar.tsx           # Панель фильтра по тегам
-│           ├── BurgerMenu.tsx          # Круглая кнопка-меню
-│           ├── FullscreenViewer.tsx    # Полноэкранный просмотр с тегами
-│           ├── CatalogManagerPopup.tsx # Управление каталогами
-│           ├── TagManagerPopup.tsx     # Управление тегами
-│           ├── DraggableResizable.tsx  # Перемещаемые/изменяемые попапы
-│           ├── ThumbnailProgressBar.tsx# Прогресс генерации превью
-│           └── ToastContainer.tsx      # Всплывающие уведомления
+│       └── components/     # UI-компоненты (папка на компонент: `<Name>.tsx` + `<Name>.module.css`)
+│           ├── BatchTagBar/         # Панель массового тегирования
+│           ├── BurgerMenu/          # Круглая кнопка-меню
+│           ├── CatalogManagerPopup/ # Управление каталогами
+│           ├── DraggableResizable/  # Перемещаемые/изменяемые попапы
+│           ├── FilterBar/           # Панель фильтра по тегам
+│           ├── FullscreenViewer/    # Полноэкранный просмотр с тегами
+│           ├── MediaGrid/           # Виртуализированная сетка превью
+│           ├── TagManagerPopup/     # Управление тегами
+│           ├── ThumbnailProgressBar/# Прогресс генерации превью
+│           └── ToastContainer/      # Всплывающие уведомления
 ├── media-catalog-data/     # Runtime-данные приложения (создаётся автоматически)
 │   ├── catalog.db          # JSON-база данных
 │   └── thumbnails/         # Сгенерированные превью (хэш-имена)
@@ -85,6 +86,8 @@ npm run typecheck      # проверка типов main и preload
 ├── tsconfig.main.json      # Конфигурация TypeScript (main)
 └── tsconfig.preload.json   # Конфигурация TypeScript (preload)
 ```
+
+> **Стилизация:** глобальные стили (reset, `body`, `.app`, скроллбар) — в `src/renderer/App.css`. Каждый компонент лежит в своей папке `components/<Имя>/` вместе со своим CSS Module (`components/<Имя>/<Имя>.module.css`), который импортируется самим компонентом; классы являются локальными.
 
 ## Как это работает
 

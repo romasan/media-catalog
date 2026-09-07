@@ -1,0 +1,86 @@
+.filter-bar {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 320px;
+  background: rgba(30, 30, 30, 0.92);
+  border: 1px solid #3a3a3a;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.filter-mode-toggle {
+  display: flex;
+  gap: 4px;
+  background: #242424;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.filter-mode-toggle button {
+  flex: 1;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #999;
+  font-size: 12px;
+}
+
+.filter-mode-toggle button.active {
+  background: #3a6ea5;
+  color: #fff;
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #2d4a6b;
+  border-radius: 14px;
+  padding: 2px 8px 3px 10px;
+  font-size: 13px;
+  color: #d6e6f7;
+  white-space: nowrap;
+}
+
+.filter-meta-tag-chip {
+  background: #3a3a3a;
+  color: #aaa;
+}
+
+.filter-meta-tag-chip .filter-tag-name:hover {
+  text-decoration: none;
+  cursor: default;
+}
+
+.filter-tag-name {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+.filter-tag-remove {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  height: 12px;
+  padding: 0 2px;
+}
+
+.filter-tag-remove:hover {
+  color: #ff6b6b;
+}

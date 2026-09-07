@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import styles from './DraggableResizable.module.css';
 
 interface DraggableResizableProps {
   title: string;
@@ -126,7 +127,7 @@ export function DraggableResizable({
 
   return (
     <div
-      className="draggable-resizable"
+      className={styles['draggable-resizable']}
       style={{
         left: pos.x,
         top: pos.y,
@@ -134,14 +135,14 @@ export function DraggableResizable({
         height: size.height,
       }}
     >
-      <div className="popup-header" onMouseDown={handleMouseDown}>
-        <span className="popup-title">{title}</span>
-        <button className="popup-close" onClick={onClose} title="Закрыть">
+      <div className={styles['popup-header']} onMouseDown={handleMouseDown}>
+        <span className={styles['popup-title']}>{title}</span>
+        <button className={styles['popup-close']} onClick={onClose} title="Закрыть">
           ✕
         </button>
       </div>
-      <div className="popup-body">{children}</div>
-      <div className="resize-handle" onMouseDown={handleResizeMouseDown} />
+      <div className={styles['popup-body']}>{children}</div>
+      <div className={styles['resize-handle']} onMouseDown={handleResizeMouseDown} />
     </div>
   );
 }

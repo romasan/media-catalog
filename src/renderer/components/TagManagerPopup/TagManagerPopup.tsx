@@ -1,10 +1,11 @@
 import { observer } from 'mobx-react-lite';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useApp } from '../store/AppStore';
-import { DraggableResizable } from './DraggableResizable';
-import { META_TAG_GROUPS } from '../../shared/metaTags';
-import type { TagSearchResult } from '../../shared/types';
+import { useApp } from '../../store/AppStore';
+import { DraggableResizable } from '../DraggableResizable/DraggableResizable';
+import { META_TAG_GROUPS } from '../../../shared/metaTags';
+import type { TagSearchResult } from '../../../shared/types';
+import styles from './TagManagerPopup.module.css';
 
 interface TagManagerPopupProps {
   onClose: () => void;
@@ -128,16 +129,16 @@ export const TagManagerPopup = observer(function TagManagerPopup({ onClose }: Ta
       minWidth={360}
       minHeight={300}
     >
-      <div className="popup-content tag-manager">
+      <div className={styles['popup-content']}>
         {metaTagsByGroup.length > 0 && (
-          <div className="meta-tags-section">
+          <div className={styles['meta-tags-section']}>
             {metaTagsByGroup.map(({ group, items }) => (
-              <div className="meta-tags-group" key={group}>
-                <div className="meta-tags-group-title">{group}</div>
-                <div className="meta-tags-row">
+              <div key={group}>
+                <div className={styles['meta-tags-group-title']}>{group}</div>
+                <div className={styles['meta-tags-row']}>
                   {items.map((metaTag) => (
                     <button
-                      className="meta-tag-chip"
+                      className={styles['meta-tag-chip']}
                       key={metaTag.id}
                       onClick={() => handleTagClick(metaTag.id)}
                       title={`Добавить «${metaTag.name}» в фильтр`}
@@ -151,9 +152,9 @@ export const TagManagerPopup = observer(function TagManagerPopup({ onClose }: Ta
           </div>
         )}
 
-        <div className="tag-search-row">
+        <div className={styles['tag-search-row']}>
           <input
-            className="tag-search-input"
+            className={styles['tag-search-input']}
             type="text"
             placeholder="Поиск или создание тега..."
             value={query}
@@ -162,15 +163,15 @@ export const TagManagerPopup = observer(function TagManagerPopup({ onClose }: Ta
             autoFocus
           />
           {query.trim() && !exists && (
-            <button className="tag-create-button" onClick={handleCreateNew}>
+            <button className={styles['tag-create-button']} onClick={handleCreateNew}>
               Создать
             </button>
           )}
         </div>
 
-        <div className="tag-list">
+        <div className={styles['tag-list']}>
           {filteredTags.length === 0 && (
-            <div className="tag-empty">
+            <div className={styles['tag-empty']}>
               {query.trim() && !exists
                 ? 'Ничего не найдено. Нажмите Enter, чтобы создать тег.'
                 : 'Тегов пока нет. Создайте первый тег.'}
@@ -178,15 +179,15 @@ export const TagManagerPopup = observer(function TagManagerPopup({ onClose }: Ta
           )}
           {filteredTags.map(({ tag, count }) => (
             <div
-              className="tag-item"
+              className={styles['tag-item']}
               key={tag.id}
               onClick={() => handleTagClick(tag.id)}
               title={`Добавить «${tag.name}» в фильтр`}
             >
-              <span className="tag-name">{tag.name}</span>
-              <span className="tag-count">{count} файлов</span>
+              <span className={styles['tag-name']}>{tag.name}</span>
+              <span className={styles['tag-count']}>{count} файлов</span>
               <button
-                className="icon-button delete-button"
+                className={`${styles['icon-button']} ${styles['delete-button']}`}
                 onClick={(e) => handleDeleteClick({ tag, count }, e)}
                 title="Удалить тег"
               >
@@ -200,26 +201,26 @@ export const TagManagerPopup = observer(function TagManagerPopup({ onClose }: Ta
           ))}
         </div>
 
-        <div className="tag-total">Всего тегов: {tags.length}</div>
+        <div className={styles['tag-total']}>Всего тегов: {tags.length}</div>
 
         {tagPendingDelete &&
           createPortal(
-            <div className="tag-delete-modal" onClick={handleCancelDelete}>
+            <div className={styles['tag-delete-modal']} onClick={handleCancelDelete}>
               <div
-                className="tag-delete-modal-window"
+                className={styles['tag-delete-modal-window']}
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="tag-delete-modal-title">Удалить тег?</div>
-                <div className="tag-delete-modal-text">
+                <div className={styles['tag-delete-modal-title']}>Удалить тег?</div>
+                <div className={styles['tag-delete-modal-text']}>
                   Тег «{tagPendingDelete.tag.name}» присвоен {tagPendingDelete.count}{' '}
                   {pluralize(tagPendingDelete.count, 'файлу', 'файлам', 'файлам')}. Связи с
                   файлами будут удалены.
                 </div>
-                <div className="tag-delete-modal-actions">
-                  <button className="tag-delete-modal-cancel" onClick={handleCancelDelete}>
+                <div className={styles['tag-delete-modal-actions']}>
+                  <button className={styles['tag-delete-modal-cancel']} onClick={handleCancelDelete}>
                     Отмена
                   </button>
-                  <button className="tag-delete-modal-submit" onClick={handleConfirmDelete}>
+                  <button className={styles['tag-delete-modal-submit']} onClick={handleConfirmDelete}>
                     Удалить
                   </button>
                 </div>

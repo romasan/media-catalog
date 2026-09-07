@@ -1,6 +1,7 @@
 import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { useApp } from '../store/AppStore';
+import { useApp } from '../../store/AppStore';
+import styles from './FilterBar.module.css';
 
 export const FilterBar = observer(function FilterBar(): React.ReactElement | null {
   const { filter, tags, metaTags, removeTagFromFilter, setFilterMode } = useApp();
@@ -13,18 +14,18 @@ export const FilterBar = observer(function FilterBar(): React.ReactElement | nul
   }
 
   return (
-    <div className="filter-bar">
+    <div className={styles['filter-bar']}>
       {filter.tagIds.length > 1 && (
-        <div className="filter-mode-toggle">
+        <div className={styles['filter-mode-toggle']}>
           <button
-            className={`filter-toggle-btn ${filter.mode === 'AND' ? 'active' : ''}`}
+            className={filter.mode === 'AND' ? styles.active : ''}
             onClick={() => setFilterMode('AND')}
             title="Показывать только файлы со всеми выбранными тегами"
           >
             все
           </button>
           <button
-            className={`filter-toggle-btn ${filter.mode === 'OR' ? 'active' : ''}`}
+            className={filter.mode === 'OR' ? styles.active : ''}
             onClick={() => setFilterMode('OR')}
             title="Показывать файлы хотя бы с одним из выбранных тегов"
           >
@@ -32,12 +33,12 @@ export const FilterBar = observer(function FilterBar(): React.ReactElement | nul
           </button>
         </div>
       )}
-      <div className="filter-tags">
+      <div className={styles['filter-tags']}>
         {selectedMetaTags.map(({ metaTag }) => (
-          <div className="filter-tag-chip filter-meta-tag-chip" key={metaTag.id}>
-            <span className="filter-tag-name">{metaTag.name}</span>
+          <div className={`${styles['filter-tag-chip']} ${styles['filter-meta-tag-chip']}`} key={metaTag.id}>
+            <span className={styles['filter-tag-name']}>{metaTag.name}</span>
             <button
-              className="filter-tag-remove"
+              className={styles['filter-tag-remove']}
               onClick={() => removeTagFromFilter(metaTag.id)}
               title="Удалить метатег из фильтра"
             >
@@ -49,10 +50,10 @@ export const FilterBar = observer(function FilterBar(): React.ReactElement | nul
           </div>
         ))}
         {selectedTags.map(({ tag }) => (
-          <div className="filter-tag-chip" key={tag.id}>
-            <span className="filter-tag-name">{tag.name}</span>
+          <div className={styles['filter-tag-chip']} key={tag.id}>
+            <span className={styles['filter-tag-name']}>{tag.name}</span>
             <button
-              className="filter-tag-remove"
+              className={styles['filter-tag-remove']}
               onClick={() => removeTagFromFilter(tag.id)}
               title="Удалить тег из фильтра"
             >

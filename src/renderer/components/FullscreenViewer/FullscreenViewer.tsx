@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { MediaFile, MetaTag, Tag, TagSearchResult } from '../../shared/types';
-import { useApp } from '../store/AppStore';
+import type { MediaFile, MetaTag, Tag, TagSearchResult } from '../../../shared/types';
+import { useApp } from '../../store/AppStore';
+import styles from './FullscreenViewer.module.css';
 
 interface FullscreenViewerProps {
   media: MediaFile;
@@ -306,8 +307,8 @@ export function FullscreenViewer({
   };
 
   return (
-    <div className="fullscreen-viewer">
-      <div className="fullscreen-media-container">
+    <div className={styles['fullscreen-viewer']}>
+      <div className={styles['fullscreen-media-container']}>
         {displayedMedia.type === 'video' ? (
           mediaUrl ? (
             <video
@@ -315,25 +316,25 @@ export function FullscreenViewer({
               poster={thumbUrl || undefined}
               controls
               autoPlay
-              className="fullscreen-media"
+              className={styles['fullscreen-media']}
               onContextMenu={handleMediaContextMenu}
             />
           ) : (
-            <div className="fullscreen-placeholder">Не удалось загрузить видео</div>
+            <div className={styles['fullscreen-placeholder']}>Не удалось загрузить видео</div>
           )
         ) : mediaUrl ? (
           <img
             src={mediaUrl}
             alt={displayedMedia.name}
-            className="fullscreen-media"
+            className={styles['fullscreen-media']}
             onContextMenu={handleMediaContextMenu}
           />
         ) : (
-          <div className="fullscreen-placeholder">Не удалось загрузить изображение</div>
+          <div className={styles['fullscreen-placeholder']}>Не удалось загрузить изображение</div>
         )}
 
         <button
-          className="fullscreen-nav fullscreen-nav-left"
+          className={`${styles['fullscreen-nav']} ${styles['fullscreen-nav-left']}`}
           onClick={() => onNavigate(-1)}
           title="Предыдущее (←)"
           aria-label="Предыдущее"
@@ -341,7 +342,7 @@ export function FullscreenViewer({
           ◀
         </button>
         <button
-          className="fullscreen-nav fullscreen-nav-right"
+          className={`${styles['fullscreen-nav']} ${styles['fullscreen-nav-right']}`}
           onClick={() => onNavigate(1)}
           title="Следующее (→)"
           aria-label="Следующее"
@@ -350,22 +351,22 @@ export function FullscreenViewer({
         </button>
       </div>
 
-      <div className="fullscreen-info-bar">
-        <div className="fullscreen-file-path" title={displayedMedia.path}>
+      <div className={styles['fullscreen-info-bar']}>
+        <div className={styles['fullscreen-file-path']} title={displayedMedia.path}>
           {displayedMedia.path}
         </div>
-        <div className="fullscreen-file-meta">
+        <div className={styles['fullscreen-file-meta']}>
           <span>📅 {formatDate(displayedMedia.modifiedAt)}</span>
           {captureDate !== null && formatDate(captureDate) !== formatDate(displayedMedia.modifiedAt) && (
             <span title="Дата съёмки из метаданных">📷 {formatDate(captureDate)}</span>
           )}
           <span>💾 {formatFileSize(displayedMedia.size)}</span>
         </div>
-        <div className="fullscreen-tags">
+        <div className={styles['fullscreen-tags']}>
           {metaTags.map((metaTag) => (
-            <div className="fullscreen-tag fullscreen-meta-tag" key={metaTag.id}>
+            <div className={`${styles['fullscreen-tag']} ${styles['fullscreen-meta-tag']}`} key={metaTag.id}>
               <button
-                className="fullscreen-tag-name"
+                className={styles['fullscreen-tag-name']}
                 onClick={() => onAddTagToFilter(metaTag.id)}
                 title={`Добавить «${metaTag.name}» в фильтр`}
               >
@@ -374,16 +375,16 @@ export function FullscreenViewer({
             </div>
           ))}
           {tags.map((tag) => (
-            <div className="fullscreen-tag" key={tag.id}>
+            <div className={styles['fullscreen-tag']} key={tag.id}>
               <button
-                className="fullscreen-tag-name"
+                className={styles['fullscreen-tag-name']}
                 onClick={() => onAddTagToFilter(tag.id)}
                 title={`Добавить «${tag.name}» в фильтр`}
               >
                 {tag.name}
               </button>
               <button
-                className="fullscreen-tag-remove"
+                className={styles['fullscreen-tag-remove']}
                 onClick={() => handleRemoveTag(tag.id)}
                 title="Удалить тег"
               >
@@ -392,10 +393,10 @@ export function FullscreenViewer({
             </div>
           ))}
           {activeInput ? (
-            <div className="add-tag-input-container">
+            <div className={styles['add-tag-input-container']}>
               <input
                 ref={inputRef}
-                className="add-tag-input"
+                className={styles['add-tag-input']}
                 type="text"
                 placeholder="Новый тег..."
                 value={activeInput.value}
@@ -407,10 +408,10 @@ export function FullscreenViewer({
                 autoFocus
               />
               {suggestions.length > 0 && (
-                <div className="tag-suggestions">
+                <div className={styles['tag-suggestions']}>
                   {suggestions.map(({ tag }, index) => (
                     <div
-                      className={`tag-suggestion ${index === activeInput.selectedIndex ? 'selected' : ''}`}
+                      className={`${styles['tag-suggestion']} ${index === activeInput.selectedIndex ? styles['selected'] : ''}`}
                       key={tag.id}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => handleApplyTag(tag.id)}
@@ -423,7 +424,7 @@ export function FullscreenViewer({
             </div>
           ) : (
             <button
-              className="add-tag-button"
+              className={styles['add-tag-button']}
               onClick={() =>
                 setActiveInput({
                   id: nextInputId.current++,
@@ -439,7 +440,7 @@ export function FullscreenViewer({
         </div>
       </div>
 
-      <button className="fullscreen-close" onClick={onClose} title="Закрыть (Esc)">
+      <button className={styles['fullscreen-close']} onClick={onClose} title="Закрыть (Esc)">
         ✕
       </button>
     </div>

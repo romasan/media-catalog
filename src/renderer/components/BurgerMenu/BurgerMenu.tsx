@@ -1,8 +1,9 @@
 import { observer } from 'mobx-react-lite';
 import React, { useState } from 'react';
-import { CatalogManagerPopup } from './CatalogManagerPopup';
-import { TagManagerPopup } from './TagManagerPopup';
-import { useApp } from '../store/AppStore';
+import { CatalogManagerPopup } from '../CatalogManagerPopup/CatalogManagerPopup';
+import { TagManagerPopup } from '../TagManagerPopup/TagManagerPopup';
+import { useApp } from '../../store/AppStore';
+import styles from './BurgerMenu.module.css';
 
 type ActivePopup = 'catalogs' | 'tags' | null;
 
@@ -32,9 +33,9 @@ export const BurgerMenu = observer(function BurgerMenu(): React.ReactElement {
 
   return (
     <>
-      <div className="burger-menu">
+      <div className={styles['burger-menu']}>
         <button
-          className="burger-button"
+          className={styles['burger-button']}
           onClick={() => setIsOpen(!isOpen)}
           title="Меню"
         >
@@ -49,27 +50,27 @@ export const BurgerMenu = observer(function BurgerMenu(): React.ReactElement {
       {isOpen && (
         <>
           <div
-            className="menu-backdrop"
+            className={styles['menu-backdrop']}
             onClick={() => setIsOpen(false)}
           />
-          <div className="burger-menu-popup">
+          <div className={styles['burger-menu-popup']}>
             <button
-              className="burger-menu-item"
+              className={styles['burger-menu-item']}
               onClick={() => handleMenuItemClick('catalogs')}
             >
               📁 Управление каталогами
             </button>
             <button
-              className="burger-menu-item"
+              className={styles['burger-menu-item']}
               onClick={() => handleMenuItemClick('tags')}
             >
               🏷️ Управление тегами
             </button>
-            <div className="burger-menu-separator" />
-            <button className="burger-menu-item" onClick={handleExport}>
+            <div className={styles['burger-menu-separator']} />
+            <button className={styles['burger-menu-item']} onClick={handleExport}>
               💾 Экспорт
             </button>
-            <button className="burger-menu-item" onClick={handleImport}>
+            <button className={styles['burger-menu-item']} onClick={handleImport}>
               📥 Импорт
             </button>
           </div>

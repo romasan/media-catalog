@@ -1,0 +1,106 @@
+.popup-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.icon-button {
+  background: transparent;
+  border: none;
+  color: #999;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  color: #ff6b6b;
+}
+
+.delete-button {
+  color: #777;
+}
+
+.delete-button:hover {
+  color: #ff6b6b;
+  background: #3a2a2a;
+}
+
+.add-catalog-button {
+  flex: 1;
+  padding: 8px 14px;
+  background: #3a6ea5;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1.2;
+  box-sizing: border-box;
+  cursor: pointer;
+  max-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-catalog-button:hover {
+  background: #4682b4;
+}
+
+.add-icon {
+  margin-right: 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.catalog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.catalog-empty {
+  font-size: 13px;
+  color: #777;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.catalog-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #2c2c2c;
+  border-radius: 8px;
+  padding: 8px 12px;
+  line-height: 1.2;
+  box-sizing: border-box;
+}
+
+.catalog-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.catalog-path {
+  flex: 1;
+  font-size: 13px;
+  color: #ccc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-counts {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #888;
+}

@@ -1,6 +1,7 @@
 import { observer } from 'mobx-react-lite';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useApp } from '../store/AppStore';
+import { useApp } from '../../store/AppStore';
+import styles from './BatchTagBar.module.css';
 
 export const BatchTagBar = observer(function BatchTagBar(): React.ReactElement | null {
   const { selectedMediaIds, tags, applyTagToMedia, clearSelection } = useApp();
@@ -76,26 +77,26 @@ export const BatchTagBar = observer(function BatchTagBar(): React.ReactElement |
   }
 
   return (
-    <div className="batch-tag-bar">
-      <div className="batch-tag-bar-input-container">
+    <div className={styles['batch-tag-bar']}>
+      <div className={styles['batch-tag-bar-input-container']}>
         {suggestions.length > 0 && (
-          <div className="batch-tag-suggestions">
+          <div className={styles['batch-tag-suggestions']}>
             {suggestions.map((tag, i) => (
               <div
                 key={tag.tag.id}
-                className={`batch-tag-suggestion ${i === activeIndex ? 'active' : ''}`}
+                className={`${styles['batch-tag-suggestion']} ${i === activeIndex ? styles['active'] : ''}`}
                 onMouseEnter={() => setActiveIndex(i)}
                 onClick={() => applyTag(tag.tag.id)}
               >
                 {tag.tag.name}
-                {tag.count !== undefined && <span className="batch-tag-count">{tag.count}</span>}
+                {tag.count !== undefined && <span className={styles['batch-tag-count']}>{tag.count}</span>}
               </div>
             ))}
           </div>
         )}
         <input
           ref={inputRef}
-          className="batch-tag-input"
+          className={styles['batch-tag-input']}
           value={query}
           placeholder={`Добавить тег к ${selectedMediaIds.length} файл(ам)...`}
           onChange={(e) => {

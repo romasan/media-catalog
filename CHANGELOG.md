@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-09-07 — Put each component into its own folder under `src/renderer/components/<Name>/`
+- Moved each `<Name>.tsx` + `<Name>.module.css` pair into a dedicated `components/<Name>/` subfolder; imports in `App.tsx` and cross-component imports updated.
+
+## 2026-09-07 — Move renderer styles to per-component CSS Modules
+- Replaced the single monolithic `src/renderer/styles.css` (imported once in `App.tsx`) with per-component **CSS Modules** plus a plain global stylesheet.
+- Global/base styles (reset, `html/body/#root`, `body`, `button`, `.app`, scrollbar) moved to `src/renderer/App.css`, imported from `App.tsx`.
+- Each component now owns a sibling `<Name>.module.css` imported directly from the component:
+  `FilterBar`, `MediaGrid`, `BurgerMenu`, `BatchTagBar`, `FullscreenViewer`, `ToastContainer`, `ThumbnailProgressBar`, `DraggableResizable`, `CatalogManagerPopup`, `TagManagerPopup`.
+- All `className` usages were converted to locally scoped `styles.*` references (literal, combined and conditional/template class strings). Dead/unused CSS classes were dropped; the DOM/class structure is otherwise unchanged.
+- Deleted `src/renderer/styles.css`.
+- `README.md` (project structure) updated accordingly.
+
 ## 2026-08-10 — Replace React context store with MobX
 - Replaced `AppContext.tsx` (React Context + reducer) with a MobX store `src/renderer/store/AppStore.ts`.
 - `AppStore` is a singleton (`makeAutoObservable`) exposing reactive state (catalogs, tags, meta tags, filter, media items, selection, toasts) and actions (loaders, filters, selection, export/import, toasts).

@@ -1,7 +1,8 @@
 import { observer } from 'mobx-react-lite';
 import React from 'react';
-import { useApp } from '../store/AppStore';
-import { DraggableResizable } from './DraggableResizable';
+import { useApp } from '../../store/AppStore';
+import { DraggableResizable } from '../DraggableResizable/DraggableResizable';
+import styles from './CatalogManagerPopup.module.css';
 
 interface CatalogManagerPopupProps {
   onClose: () => void;
@@ -28,25 +29,25 @@ export const CatalogManagerPopup = observer(function CatalogManagerPopup({ onClo
       minWidth={400}
       minHeight={300}
     >
-      <div className="popup-content catalog-manager">
-        <button className="add-catalog-button" onClick={handleAddCatalog}>
-          <span className="add-icon">+</span>
+      <div className={styles['popup-content']}>
+        <button className={styles['add-catalog-button']} onClick={handleAddCatalog}>
+          <span className={styles['add-icon']}>+</span>
           Добавить папку для сканирования
         </button>
 
-        <div className="catalog-list">
+        <div className={styles['catalog-list']}>
           {catalogs.length === 0 && (
-            <div className="catalog-empty">
+            <div className={styles['catalog-empty']}>
               Нет добавленных каталогов. Нажмите «Добавить папку», чтобы начать.
             </div>
           )}
           {catalogs.map((catalog) => {
             const stats = catalogStats.find((s) => s.catalogId === catalog.id);
             return (
-              <div className="catalog-item" key={catalog.id}>
-                <div className="catalog-info">
-                  <div className="catalog-path">{catalog.path}</div>
-                  <div className="catalog-counts">
+              <div className={styles['catalog-item']} key={catalog.id}>
+                <div className={styles['catalog-info']}>
+                  <div className={styles['catalog-path']}>{catalog.path}</div>
+                  <div className={styles['catalog-counts']}>
                     {stats ? (
                       <>
                         <span>📷 {stats.photoCount}</span>
@@ -58,7 +59,7 @@ export const CatalogManagerPopup = observer(function CatalogManagerPopup({ onClo
                   </div>
                 </div>
                 <button
-                  className="icon-button delete-button"
+                  className={`${styles['icon-button']} ${styles['delete-button']}`}
                   onClick={() => handleRemoveCatalog(catalog.id)}
                   title="Удалить каталог"
                 >

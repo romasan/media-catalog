@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { ThumbnailProgress } from '../../shared/types';
+import type { ThumbnailProgress } from '../../../shared/types';
+import styles from './ThumbnailProgressBar.module.css';
 
 export function ThumbnailProgressBar(): React.ReactElement | null {
   const [progress, setProgress] = useState<ThumbnailProgress | null>(null);
@@ -44,11 +45,11 @@ export function ThumbnailProgressBar(): React.ReactElement | null {
   const percent = Math.min(100, Math.max(0, Math.round((progress.processed / progress.total) * 100)));
 
   return (
-    <div className="thumbnail-progress-container" title={`Генерация превью: ${progress.processed} из ${progress.total}`}>
-      <div className="thumbnail-progress-bar">
-        <div className="thumbnail-progress-fill" style={{ width: `${percent}%` }} />
+    <div className={styles['thumbnail-progress-container']} title={`Генерация превью: ${progress.processed} из ${progress.total}`}>
+      <div className={styles['thumbnail-progress-bar']}>
+        <div className={styles['thumbnail-progress-fill']} style={{ width: `${percent}%` }} />
       </div>
-      <span className="thumbnail-progress-text">
+      <span className={styles['thumbnail-progress-text']}>
         {percent}% · {progress.processed}/{progress.total}
       </span>
     </div>

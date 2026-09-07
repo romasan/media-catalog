@@ -1,14 +1,14 @@
 import { observer } from 'mobx-react-lite';
 import React, { useCallback, useState } from 'react';
-import './styles.css';
+import './App.css';
 import { useApp } from './store/AppStore';
-import { MediaGrid } from './components/MediaGrid';
-import { FilterBar } from './components/FilterBar';
-import { BurgerMenu } from './components/BurgerMenu';
-import { BatchTagBar } from './components/BatchTagBar';
-import { FullscreenViewer } from './components/FullscreenViewer';
-import { ToastContainer } from './components/ToastContainer';
-import { ThumbnailProgressBar } from './components/ThumbnailProgressBar';
+import { MediaGrid } from './components/MediaGrid/MediaGrid';
+import { FilterBar } from './components/FilterBar/FilterBar';
+import { BurgerMenu } from './components/BurgerMenu/BurgerMenu';
+import { BatchTagBar } from './components/BatchTagBar/BatchTagBar';
+import { FullscreenViewer } from './components/FullscreenViewer/FullscreenViewer';
+import { ToastContainer } from './components/ToastContainer/ToastContainer';
+import { ThumbnailProgressBar } from './components/ThumbnailProgressBar/ThumbnailProgressBar';
 import type { MediaFile } from '../shared/types';
 
 const AppContent = observer(function AppContent(): React.ReactElement {

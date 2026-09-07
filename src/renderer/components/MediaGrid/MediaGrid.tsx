@@ -1,7 +1,8 @@
 import { observer } from 'mobx-react-lite';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useApp } from '../store/AppStore';
-import type { MediaFile } from '../../shared/types';
+import { useApp } from '../../store/AppStore';
+import type { MediaFile } from '../../../shared/types';
+import styles from './MediaGrid.module.css';
 
 interface MediaGridProps {
   onOpenFullscreen: (media: MediaFile) => void;
@@ -164,10 +165,10 @@ export const MediaGrid = observer(function MediaGrid({ onOpenFullscreen }: Media
   const totalHeight = grid.rows * grid.itemSize;
 
   return (
-    <div className="media-grid-container" ref={containerRef} onScroll={handleScroll} onClick={handleContainerClick}>
+    <div className={styles['media-grid-container']} ref={containerRef} onScroll={handleScroll} onClick={handleContainerClick}>
       {containerWidth > 0 && (
         <div
-          className="media-grid"
+          className={styles['media-grid']}
           style={{
             width: containerWidth,
             height: totalHeight,
@@ -198,9 +199,9 @@ export const MediaGrid = observer(function MediaGrid({ onOpenFullscreen }: Media
           })}
         </div>
       )}
-      {isLoadingMedia && <div className="loading-overlay">Загрузка...</div>}
+      {isLoadingMedia && <div className={styles['loading-overlay']}>Загрузка...</div>}
       {!isLoadingMedia && mediaItems.length === 0 && (
-        <div className="empty-state">
+        <div className={styles['empty-state']}>
           Каталог пуст. Добавьте папки через меню (☰).
         </div>
       )}
@@ -246,7 +247,7 @@ function MediaCard({ media, style, isSelected, onClick, onContextMenu }: MediaCa
 
   return (
     <div
-      className={`media-card ${isVideo ? 'media-card-video' : ''} ${isSelected ? 'media-card-selected' : ''}`}
+      className={`${styles['media-card']} ${isSelected ? styles['media-card-selected'] : ''}`}
       style={style}
       onClick={onClick}
       onContextMenu={onContextMenu}
@@ -255,11 +256,11 @@ function MediaCard({ media, style, isSelected, onClick, onContextMenu }: MediaCa
       {thumbUrl ? (
         <img src={thumbUrl} alt={media.name} loading="lazy" />
       ) : (
-        <div className="media-card-placeholder">
+        <div className={styles['media-card-placeholder']}>
           {isVideo ? '🎬' : '🖼️'}
         </div>
       )}
-      {isVideo && <div className="video-badge">▶</div>}
+      {isVideo && <div className={styles['video-badge']}>▶</div>}
     </div>
   );
 }

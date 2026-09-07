@@ -1,0 +1,60 @@
+.draggable-resizable {
+  position: absolute;
+  background: #242424;
+  border: 1px solid #444;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  min-width: 300px;
+  min-height: 200px;
+  overflow: hidden;
+}
+
+.popup-header {
+  background: #2c2c2c;
+  padding: 10px 14px;
+  border-bottom: 1px solid #3a3a3a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.popup-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.popup-close {
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.popup-close:hover {
+  background: #3a3a3a;
+  color: #fff;
+}
+
+.popup-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+}
