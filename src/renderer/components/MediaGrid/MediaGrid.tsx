@@ -2,6 +2,7 @@ import { observer } from 'mobx-react-lite';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../../store/AppStore';
 import type { MediaFile } from '../../../shared/types';
+import { DateRangeLabel } from '../DateRangeLabel/DateRangeLabel';
 import styles from './MediaGrid.module.css';
 
 interface MediaGridProps {
@@ -12,8 +13,12 @@ interface GridState {
   itemSize: number;
   columns: number;
   rows: number;
+  /** Индексы для рендера: видимые строки + overscan. */
   visibleStart: number;
   visibleEnd: number;
+  /** Индексы карточек, реально попадающих в область просмотра (без overscan). */
+  contentStart: number;
+  contentEnd: number;
 }
 
 const MIN_ITEM_SIZE = 100;
@@ -61,6 +66,8 @@ export const MediaGrid = observer(function MediaGrid({ onOpenFullscreen }: Media
         rows: 0,
         visibleStart: 0,
         visibleEnd: 0,
+        contentStart: 0,
+        contentEnd: 0,
       };
     }
 
@@ -77,12 +84,27 @@ export const MediaGrid = observer(function MediaGrid({ onOpenFullscreen }: Media
     const startRow = Math.max(0, Math.floor(scrollTop / itemSize) - OVERSCAN_ROWS);
     const endRow = Math.min(rows, startRow + visibleRows);
 
+    // Диапазон карточек, реально попадающих в область просмотра (без overscan).
+    // Используется для подписи с диапазоном дат в правом верхнем углу.
+    const firstContentRow = Math.max(0, Math.floor(scrollTop / itemSize));
+    const lastContentRow = Math.min(
+      rows - 1,
+      Math.floor(Math.max(0, scrollTop + viewportHeight - 1) / itemSize),
+    );
+    const contentStart = Math.min(firstContentRow * columns, mediaItems.length);
+    const contentEnd =
+      lastContentRow < firstContentRow
+        ? contentStart
+        : Math.min(mediaItems.length, (lastContentRow + 1) * columns);
+
     return {
       itemSize,
       columns,
       rows,
       visibleStart: startRow * columns,
       visibleEnd: endRow * columns,
+      contentStart,
+      contentEnd,
     };
   }, [containerWidth, containerHeight, mediaItems.length, scrollTop]);
 
@@ -162,6 +184,27 @@ export const MediaGrid = observer(function MediaGrid({ onOpenFullscreen }: Media
     return mediaItems.slice(grid.visibleStart, grid.visibleEnd);
   }, [mediaItems, grid.visibleStart, grid.visibleEnd]);
 
+  // Диапазон дат (modifiedAt) карточек в видимой области — для подписи в правом верхнем углу.
+  const visibleDateRange = useMemo(() => {
+    let min = Number.POSITIVE_INFINITY;
+    let max = Number.NEGATIVE_INFINITY;
+
+    for (let i = grid.contentStart; i < grid.contentEnd; i += 1) {
+      const timestamp = mediaItems[i]?.modifiedAt;
+      if (typeof timestamp !== 'number') {
+        continue;
+      }
+      if (timestamp < min) {
+        min = timestamp;
+      }
+      if (timestamp > max) {
+        max = timestamp;
+      }
+    }
+
+    return min <= max ? { min, max } : null;
+  }, [mediaItems, grid.contentStart, grid.contentEnd]);
+
   const totalHeight = grid.rows * grid.itemSize;
 
   return (
@@ -204,6 +247,9 @@ export const MediaGrid = observer(function MediaGrid({ onOpenFullscreen }: Media
         <div className={styles['empty-state']}>
           Каталог пуст. Добавьте папки через меню (☰).
         </div>
+      )}
+      {visibleDateRange && (
+        <DateRangeLabel minTimestamp={visibleDateRange.min} maxTimestamp={visibleDateRange.max} />
       )}
     </div>
   );

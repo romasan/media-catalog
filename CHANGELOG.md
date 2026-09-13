@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-13 — Show date range of cards in the visible grid area
+- Added a `DateRangeLabel` pill in the top-right corner with the date range (`modifiedAt`) of the cards currently visible in the grid; it updates while scrolling.
+- Format adapts to the range length: same day `22 апреля 2025`, same month `1 - 9 мая 2025`, same year `1 июня - 30 июля 2025`, different years `20 декабря 2025 - 7 января 2026`.
+- `MediaGrid` now also tracks the actual on-screen index range (without overscan); `ThumbnailProgressBar` moved to `top: 56px` so it stacks below the label.
+- Docs (`WORKFLOW`, `ARCHITECTURE`, `README`) updated accordingly.
+
 ## 2026-09-07 — Show photo/video counts in the filter bar
 - Filter bar is now always visible and shows a photo/video counter (📷 N 🎬 M) to the right of the selected tags; it reflects the active filter, or the total records when the filter is empty.
 
