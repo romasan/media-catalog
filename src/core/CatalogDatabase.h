@@ -97,11 +97,6 @@ public:
     bool updateCapturedAt(const QString &mediaId, qint64 capturedAt);
     bool markCapturedAtMissing(const QString &mediaId);
 
-    /// Отфильтрованные, отсортированные (сначала новые) и обрезанные записи.
-    /// total получает полное число совпадений до применения limit/offset.
-    QList<MediaFile> queryMedia(const FilterCondition &filter, int *total = nullptr,
-                                int limit = -1, int offset = 0) const;
-
     // ==== Теги ====
 
     QList<Tag> tags() const;

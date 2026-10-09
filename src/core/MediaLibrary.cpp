@@ -65,6 +65,15 @@ QVariantMap metaTagToVariantMap(const MetaTag &tag, int count)
     return map;
 }
 
+/// Сортировка «сначала новые» — как в Electron-версии.
+QList<MediaFile> sortedByDate(QList<MediaFile> media)
+{
+    std::sort(media.begin(), media.end(), [](const MediaFile &a, const MediaFile &b) {
+        return a.modifiedAt > b.modifiedAt;
+    });
+    return media;
+}
+
 const QString kToastInfo = QStringLiteral("info");
 const QString kToastSuccess = QStringLiteral("success");
 const QString kToastError = QStringLiteral("error");
@@ -261,13 +270,29 @@ void MediaLibrary::runScan()
 QList<MediaFile> MediaLibrary::filteredMedia() const
 {
     const QList<MediaFile> all = m_database.mediaFiles();
-    const QSet<QString> tagged = m_filter.isEmpty() ? QSet<QString>() : m_database.taggedMediaIds();
+    if (m_filter.isEmpty()) {
+        return sortedByDate(all);
+    }
 
-    QList<MediaFile> media = filterMedia(all, m_filter, tagged);
-    std::sort(media.begin(), media.end(), [](const MediaFile &a, const MediaFile &b) {
-        return a.modifiedAt > b.modifiedAt;
-    });
-    return media;
+    // Обычные теги разрешаются через базу, метатеги вычисляются из свойств файла.
+    QHash<QString, QSet<QString>> mediaIdsByTag;
+    for (const QString &tagId : m_filter.tagIds) {
+        if (metaTags::isMetaTagId(tagId)) {
+            continue;
+        }
+        mediaIdsByTag.insert(tagId, m_database.mediaIdsByTag(tagId));
+    }
+
+    const QSet<QString> tagged = m_database.taggedMediaIds();
+
+    QList<MediaFile> media;
+    media.reserve(all.size());
+    for (const MediaFile &file : all) {
+        if (mediaMatchesFilter(file, m_filter, tagged, mediaIdsByTag)) {
+            media.append(file);
+        }
+    }
+    return sortedByDate(media);
 }
 
 QVariantMap MediaLibrary::mediaAt(int index) const
@@ -389,6 +414,15 @@ QVariantList MediaLibrary::mediaTags(const QString &mediaId) const
         result.append(tagToVariantMap(tag, 0));
     }
     return result;
+}
+
+QStringList MediaLibrary::mediaUserTagIds(const QString &mediaId) const
+{
+    QStringList ids;
+    for (const Tag &tag : m_database.mediaTags(mediaId)) {
+        ids.append(tag.id);
+    }
+    return ids;
 }
 
 QVariantList MediaLibrary::mediaMetaTags(const QString &mediaId) const
@@ -517,6 +551,20 @@ QVariantMap MediaLibrary::metaTagById(const QString &metaTagId) const
         return {};
     }
     return metaTagToVariantMap(tag, 0);
+}
+
+QString MediaLibrary::tagName(const QString &tagId) const
+{
+    MetaTag meta;
+    if (metaTags::metaTagById(tagId, &meta)) {
+        return meta.name;
+    }
+    for (const Tag &tag : m_database.tags()) {
+        if (tag.id == tagId) {
+            return tag.name;
+        }
+    }
+    return tagId;
 }
 
 // ==== Экспорт / импорт ====

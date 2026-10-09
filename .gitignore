@@ -1,6 +1,7 @@
-build/
-cmake-build-*/
-.cache/
+# Артефакты сборки CMake (только в корне проекта).
+/build/
+/cmake-build-*/
+/cmake-build/
 compile_commands.json
 *.user
 .DS_Store

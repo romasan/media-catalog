@@ -90,6 +90,8 @@ public:
     Q_INVOKABLE QVariantList tags() const;
     Q_INVOKABLE QVariantList metaTags() const;
     Q_INVOKABLE QVariantList mediaTags(const QString &mediaId) const;
+    /// Пользовательские теги файла (без метатегов) — для массового тегирования.
+    Q_INVOKABLE QStringList mediaUserTagIds(const QString &mediaId) const;
     Q_INVOKABLE QVariantList mediaMetaTags(const QString &mediaId) const;
     Q_INVOKABLE QVariantList searchTags(const QString &query) const;
     Q_INVOKABLE QString createTag(const QString &name);
@@ -111,6 +113,8 @@ public:
     Q_INVOKABLE void clearFilter();
     /// Метатег по идентификатору — для отображения чипов фильтра.
     Q_INVOKABLE QVariantMap metaTagById(const QString &metaTagId) const;
+    /// Отображаемое имя тега по идентификатору (метатеги и обычные теги).
+    Q_INVOKABLE QString tagName(const QString &tagId) const;
 
     // ==== Экспорт / импорт ====
 
