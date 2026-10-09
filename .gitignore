@@ -1,8 +1,6 @@
-node_modules/
-dist/
-thumbnails/
-release/
-media-catalog-data/
-
-*.db
+build/
+cmake-build-*/
+.cache/
+compile_commands.json
+*.user
 .DS_Store
