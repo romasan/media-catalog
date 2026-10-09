@@ -186,6 +186,19 @@ QVariantList MediaLibrary::catalogs() const
     return result;
 }
 
+QVariantList MediaLibrary::catalogStats() const
+{
+    QVariantList result;
+    for (const CatalogStats &stats : m_database.catalogStats()) {
+        QVariantMap map;
+        map.insert(QStringLiteral("catalogId"), stats.catalogId);
+        map.insert(QStringLiteral("photoCount"), stats.photoCount);
+        map.insert(QStringLiteral("videoCount"), stats.videoCount);
+        result.append(map);
+    }
+    return result;
+}
+
 QString MediaLibrary::defaultCatalogDirectory() const
 {
     const QList<Catalog> existing = m_database.catalogs();

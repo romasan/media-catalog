@@ -23,12 +23,15 @@ QString newId()
     return QUuid::createUuid().toString(QUuid::WithoutBraces);
 }
 
-/// Абсолютный путь без символических звеньев, если файл существует.
+/// Абсолютный путь **без** разыменования символических ссылок.
+///
+/// Разыменование здесь недопустимо: имя файла превью — хэш пути, поэтому
+/// разные формы одного пути (`/tmp/x` и `/private/tmp/x` на macOS дают разные
+/// хэши) приводят к повторной генерации превью. Все места, работающие с путями
+/// медиафайлов, используют одну и ту же форму.
 QString normalizedPath(const QString &path)
 {
-    const QFileInfo info(path);
-    const QString canonical = info.canonicalFilePath();
-    return canonical.isEmpty() ? info.absoluteFilePath() : canonical;
+    return QFileInfo(path).absoluteFilePath();
 }
 
 /// Qt биндит null-QString как SQL NULL, а QString по умолчанию — именно null.

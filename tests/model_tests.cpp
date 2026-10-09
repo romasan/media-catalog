@@ -87,6 +87,64 @@ bool waitForScan(MediaLibrary &library)
     return false;
 }
 
+
+/// Регрессия: имя файла превью должно вычисляться из того же пути, который
+/// хранится в базе. На macOS разыменование символических ссылок превращает
+/// /tmp в /private/tmp: если формы пути расходятся, хэш имени превью не
+/// совпадает с путём, по которому приложение ищет готовое превью, и генерация
+/// выполняется повторно при каждом запуске.
+void testPathFormConsistency(MediaLibrary &library, const QString &photosRoot)
+{
+    const QString linkRoot = QDir(QFileInfo(photosRoot).absolutePath())
+                                 .filePath(QStringLiteral("photos-link"));
+    QFile::remove(linkRoot);
+    if (!QFile::link(photosRoot, linkRoot)) {
+        QTextStream(stdout) << "  (ссылку создать не удалось — проверка пропущена)\n";
+        return;
+    }
+
+    // Добавляем каталог через символическую ссылку: сканер увидит иную форму
+    // пути, чем при добавлении напрямую.
+    library.addCatalog(linkRoot);
+    check(waitForScan(library), QStringLiteral("сканирование по ссылке завершилось"));
+
+    // Ждём превью, чтобы проверить их пути.
+    for (int i = 0; i < 600 && library.isGeneratingThumbnails(); ++i) {
+        waitFor(100);
+    }
+    waitFor(200);
+
+    const QList<MediaFile> media = library.database().mediaFiles();
+    check(!media.isEmpty(), QStringLiteral("файлы найдены и по ссылке"));
+
+    int checked = 0;
+    for (const MediaFile &file : media) {
+        // Ключевой инвариант: сохранённый путь превью совпадает с тем,
+        // который вычисляется из пути файла.
+        const QString expected = library.paths().thumbnailPathFor(file.path);
+        if (file.thumbnailPath.isEmpty()) {
+            continue;
+        }
+        ++checked;
+        checkEqual(file.thumbnailPath, expected,
+                   QStringLiteral("путь превью вычислен из пути файла (%1)").arg(file.name));
+        check(QFileInfo::exists(file.thumbnailPath),
+              QStringLiteral("файл превью существует (%1)").arg(file.name));
+    }
+    check(checked > 0, QStringLiteral("превью сгенерированы для файлов, найденных по ссылке"));
+
+    // Повторное сканирование не должно ничего добавлять.
+    const int before = library.mediaCount();
+    library.requestInitialScan();
+    check(waitForScan(library), QStringLiteral("повторное сканирование завершилось"));
+    checkEqual(library.mediaCount(), before,
+               QStringLiteral("повторное сканирование не задублировало файлы"));
+
+    library.removeCatalog(library.catalogs().last().toMap()
+                              .value(QStringLiteral("id")).toString());
+    QFile::remove(linkRoot);
+}
+
 } // namespace
 
 int main(int argc, char *argv[])
@@ -236,6 +294,9 @@ int main(int argc, char *argv[])
     // ==== Метатеги файла ====
     const QVariantList fileMetaTags = library.mediaMetaTags(firstId);
     checkEqual(fileMetaTags.size(), 3, QStringLiteral("у файла три метатега"));
+
+    // ==== Согласованность форм пути (регрессия) ====
+    testPathFormConsistency(library, workDir.path());
 
     // ==== Удаление каталога ====
     const QString catalogId = library.catalogs().first().toMap()

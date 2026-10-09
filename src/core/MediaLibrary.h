@@ -63,11 +63,14 @@ public:
     QString lastError() const { return m_lastError; }
 
     CatalogDatabase &database() { return m_database; }
+    const AppPaths &paths() const { return m_paths; }
     const CatalogDatabase &database() const { return m_database; }
 
     // ==== Каталоги ====
 
     Q_INVOKABLE QVariantList catalogs() const;
+    /// Статистика по каталогам: сколько фото и видео найдено в каждом.
+    Q_INVOKABLE QVariantList catalogStats() const;
     Q_INVOKABLE void addCatalog(const QString &path);
     Q_INVOKABLE void removeCatalog(const QString &catalogId);
     Q_INVOKABLE void requestInitialScan();

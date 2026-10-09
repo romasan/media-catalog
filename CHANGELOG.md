@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-10 — Fix duplicate preview generation and catalog statistics for QML
+- Unified media path normalization to an absolute path without resolving symbolic links: resolving turned `/tmp` into `/private/tmp` on macOS, so the preview file name (a hash of the path) no longer matched the path the app looked up and every preview was regenerated on each start.
+- Added a regression check that a catalog added through a symbolic link produces previews exactly once and that the stored preview path equals the path derived from the file path.
+- Exposed `catalogStats` to QML and added the missing `Q_INVOKABLE` markers, so the catalog manager shows photo and video counts instead of QML type errors.
+
 ## 2026-10-10 — Native rewrite: C++20 + Qt 6 instead of Electron + React
 - The application is rewritten as native software for macOS, Windows and Linux in C++20 with Qt Quick; a single CMake build replaces the Electron, React and MobX stack.
 - Data moved from the hand-rolled JSON file to SQLite in WAL mode with a versioned schema, indexes and referential cleanup; export/import still transfers catalogs, tags and links by path and tag name.
