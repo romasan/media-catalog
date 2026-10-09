@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-10-10 — Keep the data directory one level deep
+- The default data directory is now built from the OS generic data location plus the application name instead of `QStandardPaths::AppDataLocation`, which also appends the organization name and produced a nested path like `…/Application Support/MediaCatalog/MediaCatalog`.
+
 ## 2026-10-10 — Fix duplicate preview generation and catalog statistics for QML
 - Unified media path normalization to an absolute path without resolving symbolic links: resolving turned `/tmp` into `/private/tmp` on macOS, so the preview file name (a hash of the path) no longer matched the path the app looked up and every preview was regenerated on each start.
 - Added a regression check that a catalog added through a symbolic link produces previews exactly once and that the stored preview path equals the path derived from the file path.

@@ -10,7 +10,7 @@ namespace mc {
 /// `<dataDir>/catalog.*`), чтобы превью, сгенерированные старой версией,
 /// можно было переиспользовать без перегенерации.
 ///
-/// Каталог данных по умолчанию — `QStandardPaths::AppDataLocation`:
+/// Каталог данных по умолчанию (общий каталог данных ОС + имя приложения):
 ///   - macOS   `~/Library/Application Support/MediaCatalog`
 ///   - Windows `%APPDATA%/MediaCatalog`
 ///   - Linux   `~/.local/share/MediaCatalog`
