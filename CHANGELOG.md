@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-10 — Native rewrite: C++20 + Qt 6 instead of Electron + React
+- The application is rewritten as native software for macOS, Windows and Linux in C++20 with Qt Quick; a single CMake build replaces the Electron, React and MobX stack.
+- Data moved from the hand-rolled JSON file to SQLite in WAL mode with a versioned schema, indexes and referential cleanup; export/import still transfers catalogs, tags and links by path and tag name.
+- Preview file names reproduce the 1.x path hash exactly, so an existing thumbnail cache is reused instead of regenerated; ffmpeg still runs as a process pool with one process per core.
+- Photo capture dates are read by a built-in EXIF parser and video dates by ffprobe, so exifr and ffmpeg-static are no longer dependencies.
+- Added 107 core checks and 36 model checks (`ctest`) covering hashing, EXIF, storage, scanning, previews, both filter modes, selection and data transfer.
+- Documentation rewritten for the new architecture: `README.md`, `docs/ARCHITECTURE.md`, `docs/DATA.md`, `docs/WORKFLOW.md` and the new `docs/BUILD.md`.
+
 ## 2026-09-13 — Show date range of cards in the visible grid area
 - Added a `DateRangeLabel` pill in the top-right corner with the date range (`modifiedAt`) of the cards currently visible in the grid; it updates while scrolling.
 - Format adapts to the range length: same day `22 апреля 2025`, same month `1 - 9 мая 2025`, same year `1 июня - 30 июля 2025`, different years `20 декабря 2025 - 7 января 2026`.

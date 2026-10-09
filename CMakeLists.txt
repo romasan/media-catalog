@@ -38,7 +38,7 @@ if(NOT DEFINED CMAKE_PREFIX_PATH)
 endif()
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS
-    Core Gui Qml Quick QuickControls2 Sql Multimedia Test
+    Core Gui Qml Quick QuickControls2 Svg Sql Multimedia Test
 )
 
 qt_standard_project_setup(REQUIRES 6.5)
@@ -91,6 +91,7 @@ target_link_libraries(mediacatalog PRIVATE
     Qt6::Qml
     Qt6::Quick
     Qt6::QuickControls2
+    Qt6::Svg
     Qt6::Multimedia
 )
 
@@ -164,5 +165,77 @@ install(TARGETS mediacatalog
     BUNDLE  DESTINATION .
     RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 )
+
+# ==== Упаковка ====
+# Приложение зависит от библиотек Qt, поэтому перед упаковкой их нужно
+# положить рядом: на macOS это macdeployqt, на Windows — windeployqt.
+# Инструменты поставляются вместе с Qt и лежат в bin каталога установки Qt.
+
+# Поиск каталога с инструментами развёртывания.
+get_target_property(_qt_qmake Qt6::qmake IMPORTED_LOCATION)
+get_filename_component(_qt_bin_dir "${_qt_qmake}" DIRECTORY)
+get_target_property(_qt_qml_import_dir Qt6::Qml QT_QML_IMPORT_PATH)
+
+if(APPLE)
+    find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${_qt_bin_dir}")
+
+    # Собирает самодостаточный .app: копирует Qt-фреймворки и плагины внутрь
+    # пакета, чтобы приложение запускалось на машине без Homebrew.
+    # Переписанные библиотеки теряют исходную подпись, поэтому пакет
+    # подписывается заново. Подпись ad-hoc (без сертификата) достаточна для
+    # запуска на этой машине; для распространения задайте
+    # -DMACOS_SIGN_IDENTITY="Developer ID Application: ...".
+    set(MACOS_SIGN_IDENTITY "-" CACHE STRING "Идентификатор подписи macOS (- = ad-hoc)")
+
+    # -qmldir обязателен: без него macdeployqt копирует библиотеки Qt, но не
+    # QML-модули (QtQuick.Controls и его стили), и приложение не находит их
+    # на машине без установленного Qt.
+    add_custom_target(deploy
+        COMMAND "${MACDEPLOYQT_EXECUTABLE}" "$<TARGET_BUNDLE_DIR:mediacatalog>"
+                -always-overwrite
+                -qmldir="${CMAKE_CURRENT_SOURCE_DIR}/qml"
+        COMMAND /usr/bin/codesign --force --deep --sign "${MACOS_SIGN_IDENTITY}"
+                "$<TARGET_BUNDLE_DIR:mediacatalog>"
+        COMMENT "Подготовка пакета .app (macdeployqt и повторная подпись)"
+        DEPENDS mediacatalog
+        USES_TERMINAL
+    )
+
+    set(CPACK_GENERATOR "DragNDrop")
+    set(CPACK_DMG_VOLUME_NAME "Media Catalog")
+elseif(WIN32)
+    find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_qt_bin_dir}")
+
+    add_custom_target(deploy
+        COMMAND "${WINDEPLOYQT_EXECUTABLE}" "$<TARGET_FILE:mediacatalog>"
+        COMMENT "Подготовка каталога сборки (windeployqt)"
+        DEPENDS mediacatalog
+        USES_TERMINAL
+    )
+
+    set(CPACK_GENERATOR "NSIS")
+    set(CPACK_NSIS_DISPLAY_NAME "Media Catalog")
+    set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+    set(CPACK_NSIS_MODIFY_PATH OFF)
+else()
+    # На Linux Qt-библиотеки обычно приходят из пакетов дистрибутива,
+    # поэтому достаточно архива с бинарником.
+    add_custom_target(deploy
+        COMMAND "${CMAKE_COMMAND}" -E echo "Отдельное развёртывание Qt не требуется"
+        DEPENDS mediacatalog
+        USES_TERMINAL
+    )
+
+    set(CPACK_GENERATOR "TGZ;DEB")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6core6, libqt6gui6, libqt6qml6, libqt6quick6, libqt6quickcontrols2-6, libqt6sql6-sqlite, libqt6multimedia6")
+endif()
+
+set(CPACK_PACKAGE_NAME "MediaCatalog")
+set(CPACK_PACKAGE_VENDOR "Media Catalog")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Каталогизация фото и видео")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "Media Catalog")
+
+include(CPack)
 
 
