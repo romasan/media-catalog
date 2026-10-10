@@ -41,10 +41,15 @@ Item {
         return currentId.length > 0 ? Library.mediaMetaTags(currentId) : [];
     }
 
+    /// Открыт ли ввод нового тега. Держим на корне: редактор объявлен внутри
+    /// делегата тегов, и его идентификатор не виден из других мест.
+    property bool tagEditorOpen: false
+
     signal closed()
 
     function open() {
         currentIndex = startIndex;
+        tagEditorOpen = false;
         visible = true;
         forceActiveFocus();
         loadCaptureDate();
@@ -393,12 +398,14 @@ Item {
 
                     function openEditor() {
                         editor.visible = true;
+                        root.tagEditorOpen = true;
                         App.tagModel.query = "";
                         input.forceActiveFocus();
                     }
 
                     function closeEditor() {
                         editor.visible = false;
+                        root.tagEditorOpen = false;
                         input.text = "";
                         App.tagModel.query = "";
                     }
@@ -516,8 +523,8 @@ Item {
                                         anchors.fill: parent
                                         onClicked: {
                                             // Существующий тег просто применяем.
-                                            Library.applyTag(root.currentId, parent.tagId);
-                                            tagInput.closeEditor();
+                                            Library.applyTag(root.currentId, tagId);
+                                            root.closeTagEditor();
                                         }
                                     }
                                 }
@@ -544,8 +551,15 @@ Item {
 
     // ==== Клавиатура ====
     Keys.onPressed: function (event) {
-        if (tagInput.editorVisible)
+        // Пока открыт ввод тега, Esc закрывает ввод, а стрелки принадлежат
+        // полю ввода и не листают файлы.
+        if (root.tagEditorOpen) {
+            if (event.key === Qt.Key_Escape) {
+                root.closeTagEditor();
+                event.accepted = true;
+            }
             return;
+        }
         switch (event.key) {
         case Qt.Key_Escape:
         case Qt.Key_Backspace:
@@ -578,9 +592,10 @@ Item {
         }
     }
 
-    /// Пока открыт ввод тега, стрелки и Esc принадлежат полю ввода.
-    function editorHasFocus() {
-        return tagInput.editorVisible;
+    /// Закрывает ввод тега из любого места просмотра.
+    function closeTagEditor() {
+        tagEditorOpen = false;
+        App.tagModel.query = "";
     }
 
     ToastContainer {
