@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-10-10 — Fix the fullscreen viewer reading the model row
+- The viewer asked the model for `get(index)`, which did not exist, so opening a file failed with a QML type error. `MediaListModel::get()` now returns the row as a map keyed by role names (`mediaId`, `fileUrl`, `isVideo`, `sizeText`, …), and a test asserts those keys and the out-of-range behaviour.
+
 ## 2026-10-10 — Fix popups not opening and not closing
 - Popups never appeared: `ApplicationWindow` accepts a single visual child, and the catalog and tag managers were declared as extra children with `anchors.fill`. Everything now lives under one root item, so the popups open, receive input and close.
 - The tag manager opened from the batch tagging bar was a child of that 46 px bar and was clipped by it; the bar now emits a signal and the popup belongs to the window.

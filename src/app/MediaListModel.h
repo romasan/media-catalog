@@ -60,6 +60,11 @@ public:
     int photoCount() const { return m_photoCount; }
     int videoCount() const { return m_videoCount; }
 
+    /// Данные строки в виде объекта с ролями по именам — то же, что получает
+    /// делегат сетки. Нужно экранам, которые работают со строкой по индексу,
+    /// например полноэкранному просмотру.
+    Q_INVOKABLE QVariantMap get(int row) const;
+
     Q_INVOKABLE QString idAt(int row) const;
     Q_INVOKABLE int rowForId(const QString &mediaId) const;
     Q_INVOKABLE void toggleSelection(const QString &mediaId);

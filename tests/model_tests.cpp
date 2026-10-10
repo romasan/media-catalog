@@ -237,6 +237,23 @@ int main(int argc, char *argv[])
                    ? 0 : 1,
                1, QStringLiteral("у первой строки есть имя"));
 
+    // ==== Данные строки для полноэкранного просмотра ====
+    // Просмотр берёт строку по индексу и читает её свойства, поэтому карта
+    // должна содержать те же имена ролей, что и делегат сетки.
+    {
+        const QVariantMap row = mediaModel.get(0);
+        check(!row.isEmpty(), QStringLiteral("get(0) возвращает данные"));
+        check(row.contains(QStringLiteral("mediaId")), QStringLiteral("в карте есть mediaId"));
+        check(row.contains(QStringLiteral("fileUrl")), QStringLiteral("в карте есть fileUrl"));
+        check(row.contains(QStringLiteral("isVideo")), QStringLiteral("в карте есть isVideo"));
+        check(row.contains(QStringLiteral("sizeText")), QStringLiteral("в карте есть sizeText"));
+        check(row.value(QStringLiteral("fileUrl")).toString().startsWith(QStringLiteral("file:")),
+              QStringLiteral("fileUrl — ссылка на файл"));
+        check(mediaModel.get(-1).isEmpty(), QStringLiteral("get(-1) возвращает пустую карту"));
+        check(mediaModel.get(mediaModel.rowCount()).isEmpty(),
+              QStringLiteral("get за пределами списка возвращает пустую карту"));
+    }
+
     // ==== Сортировка: сначала новые ====
     {
         auto modifiedAt = [&](int row) {

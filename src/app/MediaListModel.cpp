@@ -35,6 +35,13 @@ QVariantMap buildItem(const MediaFile &media, bool selected)
     map.insert(QStringLiteral("thumbnailUrl"), thumbnailUrl);
 
     map.insert(QStringLiteral("selected"), selected);
+
+    // Те же данные под именами ролей: строку читают и делегат сетки, и экраны,
+    // которые берут строку по индексу (полноэкранный просмотр). Раньше карта
+    // содержала только короткие ключи, и просмотр не находил «mediaId».
+    map.insert(QStringLiteral("mediaId"), media.id);
+    map.insert(QStringLiteral("isVideo"), media.kind == MediaKind::Video);
+
     return map;
 }
 
@@ -203,6 +210,16 @@ void MediaListModel::setSelectedIds(const QStringList &ids)
     }
 
     emit selectionChanged();
+}
+
+QVariantMap MediaListModel::get(int row) const
+{
+    if (row < 0 || row >= m_items.size()) {
+        return {};
+    }
+    // Ключи — имена ролей, поэтому в QML доступны как обычные свойства:
+    // current.mediaId, current.fileUrl, current.isVideo и так далее.
+    return m_items.at(row);
 }
 
 QString MediaListModel::idAt(int row) const
