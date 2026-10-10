@@ -352,6 +352,25 @@ int main(int argc, char *argv[])
               QStringLiteral("снятие тега убирает его из фильтра"));
     }
 
+    // ==== Просмотр держится за файл, а не за индекс ====
+    // После изменения фильтра список перестраивается: по индексу просмотр
+    // показал бы другой файл, и теги «терялись».
+    {
+        const int rowOfFirst = mediaModel.rowForId(firstId);
+        check(rowOfFirst >= 0, QStringLiteral("файл находится по идентификатору"));
+
+        mediaModel.selectAll();
+        library.applyTag(mediaModel.idAt(0), tagId);
+        const QString trackedId = mediaModel.idAt(0);
+        checkEqual(mediaModel.idAt(mediaModel.rowForId(trackedId)), trackedId,
+                   QStringLiteral("строка файла не меняется при поиске по идентификатору"));
+
+        library.addTagToFilter(tagId);
+        checkEqual(mediaModel.rowForId(trackedId), 0,
+                   QStringLiteral("после фильтра файл по-прежнему в списке"));
+        library.clearFilter();
+    }
+
     // ==== Фильтрация ====
     library.addTagToFilter(tagId);
     checkEqual(mediaModel.rowCount(), 2, QStringLiteral("фильтр по тегу оставил два файла"));

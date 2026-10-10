@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-10 — Keep the viewer on its file, clear the tag input, block click-through
+- The real reason a tag click looked like it did nothing: the tag *was* added to the global filter, but the filter rebuilt the media list, the viewer kept a stale row index, lost the current file and dropped all tag chips. The viewer now tracks the open file by id (`currentMediaId`), so the chips survive list rebuilds and the viewer stays on the same file.
+- The tag input is cleared as soon as a tag is picked from the suggestions or created, and again when the editor closes.
+- Clicks inside the viewer no longer reach the grid underneath: a full-window layer accepts them, and a left click on the photo does nothing (navigation is by the arrow buttons, the keyboard and the media halves).
+- Verified in the running application: clicking each of the four chip kinds adds it to the filter, and the file plus its chips survive the filter change.
+
 ## 2026-10-10 — Show an applied tag in the viewer immediately
 - The tag chip appeared only after leaving and reopening the file: the viewer read its tag lists through plain library calls, and QML has no way to know such a binding is stale. The controller now exposes a data revision that grows on every change, and the viewer and filter panel read it as a dependency, so chips update the moment a tag is applied or removed.
 - Covered by checks: `userTags` returns the applied tag at once and drops it right after removal, and the application reports the new chip without switching files.

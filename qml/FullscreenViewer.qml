@@ -19,10 +19,24 @@ Item {
     property int startIndex: 0
     property int currentIndex: startIndex
 
+    /// Идентификатор открытого файла. Просмотр держится за файл, а не за
+    /// индекс: когда фильтр или список меняются, индекс указывает уже на
+    /// другую запись, и теги «терялись».
+    property string currentMediaId: ""
+
     /// Дата съёмки из метаданных (0 — ещё не определена).
     property double capturedAt: 0
 
-    readonly property var current: App.mediaModel.get(currentIndex)
+    /// Строка текущего файла. Ищем по идентификатору, индекс — запасной путь.
+    readonly property var current: {
+        App.tagRevision;
+        if (currentMediaId.length > 0) {
+            const row = App.mediaModel.rowForId(currentMediaId);
+            if (row >= 0)
+                return App.mediaModel.get(row);
+        }
+        return App.mediaModel.get(currentIndex);
+    }
     readonly property bool isVideo: current !== undefined && current.isVideo === true
     readonly property string currentId: current !== undefined && current.mediaId !== undefined
                                            ? current.mediaId : ""
@@ -49,6 +63,7 @@ Item {
 
     function open() {
         currentIndex = startIndex;
+        currentMediaId = App.mediaModel.idAt(startIndex);
         tagEditorOpen = false;
         visible = true;
         forceActiveFocus();
@@ -68,7 +83,8 @@ Item {
             return;
         mediaPlayer.stop();
         currentIndex = next;
-        tagInput.closeEditor();
+        currentMediaId = App.mediaModel.idAt(next);
+        closeTagEditor();
         loadCaptureDate();
     }
 
@@ -104,11 +120,24 @@ Item {
         color: "#0b0c0e"
     }
 
+    // ==== Блокировка кликов по окну под просмотром ====
+    // Просмотр перекрывает окно целиком, но MouseArea ниже покрывает только
+    // область медиа. Этот слой принимает остальные клики, чтобы они не
+    // попадали в сетку с карточками.
+    MouseArea {
+        anchors.fill: parent
+        z: 0
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+        // Клик по пустому месту ничего не делает: навигация — кнопками,
+        // клавишами и кликом по самому медиа.
+    }
+
     // ==== Слой медиа ====
     Item {
         id: mediaLayer
         anchors.fill: parent
         anchors.bottomMargin: infoBar.visible ? infoBar.height : 0
+        z: 1
 
         Image {
             id: photo
@@ -129,7 +158,7 @@ Item {
             fillMode: VideoOutput.PreserveAspectFit
         }
 
-        // Клик по медиа: половины экрана листают, ПКМ открывает меню.
+        // Клик по медиа листает файлы, ПКМ открывает меню.
         MouseArea {
             anchors.fill: parent
             acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -143,7 +172,6 @@ Item {
                 else
                     root.step(1);
             }
-            onDoubleClicked: root.close()
         }
     }
 
@@ -280,10 +308,21 @@ Item {
             }
 
             // Теги файла: метатеги, пользовательские теги, ввод нового тега.
-            Flow {
+            // Строка прокручивается по горизонтали, если тегов много.
+            Flickable {
                 id: tagFlow
                 width: parent.width
-                spacing: 6
+                height: tagRow.height
+                contentWidth: tagRow.width
+                contentHeight: height
+                flickableDirection: Flickable.HorizontalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                clip: true
+
+                Row {
+                    id: tagRow
+                    objectName: "tagRow"
+                    spacing: 6
 
                 Repeater {
                     model: root.metaTags
@@ -403,11 +442,16 @@ Item {
                         input.forceActiveFocus();
                     }
 
+                    /// Очищает поле ввода.
+                    function clearInput() {
+                        input.text = "";
+                        App.tagModel.query = "";
+                    }
+
                     function closeEditor() {
                         editor.visible = false;
                         root.tagEditorOpen = false;
-                        input.text = "";
-                        App.tagModel.query = "";
+                        clearInput();
                     }
 
                     function applyName() {
@@ -417,6 +461,9 @@ Item {
                         // Существующий тег применяем, новый — создаём и применяем.
                         const tagId = Library.createTag(name);
                         Library.applyTag(root.currentId, tagId);
+                        // Поле очищаем сразу: после применения тега ввод
+                        // больше не нужен.
+                        input.text = "";
                         closeEditor();
                     }
 
@@ -522,8 +569,10 @@ Item {
                                     MouseArea {
                                         anchors.fill: parent
                                         onClicked: {
-                                            // Существующий тег просто применяем.
+                                            // Существующий тег просто применяем,
+                                            // а поле ввода очищаем.
                                             Library.applyTag(root.currentId, tagId);
+                                            root.clearTagInput();
                                             root.closeTagEditor();
                                         }
                                     }
@@ -533,6 +582,7 @@ Item {
 
                         Keys.onEscapePressed: tagInput.closeEditor()
                     }
+                }
                 }
             }
         }
@@ -578,12 +628,14 @@ Item {
         case Qt.Key_Home:
             mediaPlayer.stop();
             root.currentIndex = 0;
+            root.currentMediaId = App.mediaModel.idAt(0);
             root.loadCaptureDate();
             event.accepted = true;
             break;
         case Qt.Key_End:
             mediaPlayer.stop();
             root.currentIndex = App.mediaModel.count - 1;
+            root.currentMediaId = App.mediaModel.idAt(root.currentIndex);
             root.loadCaptureDate();
             event.accepted = true;
             break;
@@ -592,10 +644,17 @@ Item {
         }
     }
 
-    /// Закрывает ввод тега из любого места просмотра.
-    function closeTagEditor() {
+    /// Очищает поле ввода тега.
+    function clearTagInput() {
         tagEditorOpen = false;
         App.tagModel.query = "";
+        if (tagInput && tagInput.clearInput)
+            tagInput.clearInput();
+    }
+
+    /// Закрывает ввод тега из любого места просмотра.
+    function closeTagEditor() {
+        clearTagInput();
     }
 
     ToastContainer {
