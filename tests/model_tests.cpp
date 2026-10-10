@@ -322,6 +322,27 @@ int main(int argc, char *argv[])
         check(all.constFirst().toMap().contains(QStringLiteral("count")),
               QStringLiteral("у тега есть число применений"));
 
+        // Применение тега должно быть видно сразу: чип в просмотре читает
+        // userTags повторно, поэтому список обязан измениться без перехода
+        // на другой файл.
+        const QString probeTag = library.createTag(QStringLiteral("проверка-сразу"));
+        const int before = library.userTags(firstId).size();
+        library.applyTag(firstId, probeTag);
+        const int after = library.userTags(firstId).size();
+        checkEqual(after, before + 1,
+                   QStringLiteral("тег появляется в userTags сразу после применения"));
+
+        bool foundImmediately = false;
+        for (const QVariant &value : library.userTags(firstId)) {
+            if (value.toMap().value(QStringLiteral("id")).toString() == probeTag)
+                foundImmediately = true;
+        }
+        check(foundImmediately, QStringLiteral("применённый тег сразу есть в списке"));
+
+        library.removeTagFromMedia(firstId, probeTag);
+        checkEqual(library.userTags(firstId).size(), before,
+                   QStringLiteral("снятый тег сразу исчезает из списка"));
+
         // Добавление и снятие тега в фильтре — поведение клика по чипу.
         library.addTagToFilter(tagId);
         check(library.filterTagIds().contains(tagId),

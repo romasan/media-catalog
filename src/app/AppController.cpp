@@ -23,6 +23,11 @@ AppController::AppController(MediaLibrary *library, QObject *parent)
     connect(m_mediaModel, &MediaListModel::selectionChanged,
             this, &AppController::updateSelectionState);
     connect(m_library, &MediaLibrary::libraryChanged, this, [this]() {
+        // Любое изменение данных (в том числе применение тега) поднимает
+        // версию, по которой QML пересчитывает списки тегов.
+        ++m_tagRevision;
+        emit tagRevisionChanged();
+
         const bool hasCatalog = m_library->hasCatalogs();
         if (hasCatalog != m_anyCatalog) {
             m_anyCatalog = hasCatalog;

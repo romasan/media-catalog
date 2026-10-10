@@ -28,8 +28,18 @@ Item {
                                            ? current.mediaId : ""
 
     /// Пользовательские теги и метатеги текущего файла.
-    readonly property var userTags: currentId.length > 0 ? Library.userTags(currentId) : []
-    readonly property var metaTags: currentId.length > 0 ? Library.mediaMetaTags(currentId) : []
+    ///
+    /// App.tagRevision читается намеренно: методы ядра — обычные функции, и без
+    /// такой зависимости QML не пересчитает биндинг после применения тега,
+    /// поэтому чип появлялся только при повторном открытии файла.
+    readonly property var userTags: {
+        App.tagRevision;
+        return currentId.length > 0 ? Library.userTags(currentId) : [];
+    }
+    readonly property var metaTags: {
+        App.tagRevision;
+        return currentId.length > 0 ? Library.mediaMetaTags(currentId) : [];
+    }
 
     signal closed()
 

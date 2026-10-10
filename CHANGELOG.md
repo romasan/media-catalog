@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-10 — Show an applied tag in the viewer immediately
+- The tag chip appeared only after leaving and reopening the file: the viewer read its tag lists through plain library calls, and QML has no way to know such a binding is stale. The controller now exposes a data revision that grows on every change, and the viewer and filter panel read it as a dependency, so chips update the moment a tag is applied or removed.
+- Covered by checks: `userTags` returns the applied tag at once and drops it right after removal, and the application reports the new chip without switching files.
+
 ## 2026-10-10 — Restore viewer controls, tag chips and the 1.x grid area
 - The viewer had no controls: added the ◀ / ▶ navigation buttons, the close cross, the position counter and a bottom bar with the path, date and size, matching version 1.x.
 - Tags are editable again in the viewer: clicking a tag adds it to the global filter (including meta tags), the cross on a chip removes the tag from the file, and "+" opens an input with autocomplete that applies an existing tag or creates and applies a new one. Esc closes the input instead of the viewer.

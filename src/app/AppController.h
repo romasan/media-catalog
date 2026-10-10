@@ -30,6 +30,10 @@ class AppController : public QObject
     Q_PROPERTY(QString defaultCatalogDirectory READ defaultCatalogDirectory NOTIFY anyCatalogChanged)
     Q_PROPERTY(QString lastExportDirectory READ lastExportDirectory NOTIFY lastExportDirectoryChanged)
     Q_PROPERTY(QString applicationVersion READ applicationVersion CONSTANT)
+    /// Растёт при любом изменении данных (теги, файлы, фильтр). QML использует
+    /// его как зависимость: методы вида `userTags(id)` — обычные функции, и без
+    /// такой зависимости биндинг не пересчитывается после применения тега.
+    Q_PROPERTY(int tagRevision READ tagRevision NOTIFY tagRevisionChanged)
 
 public:
     explicit AppController(MediaLibrary *library, QObject *parent = nullptr);
@@ -45,6 +49,7 @@ public:
     QString defaultCatalogDirectory() const;
     QString lastExportDirectory() const { return m_lastExportDirectory; }
     QString applicationVersion() const;
+    int tagRevision() const { return m_tagRevision; }
 
     Q_INVOKABLE void addCatalog(const QString &path);
     Q_INVOKABLE void removeCatalog(const QString &catalogId);
@@ -60,6 +65,7 @@ public:
     Q_INVOKABLE void notifyExportDirectory(const QString &filePath);
 
 signals:
+    void tagRevisionChanged();
     void selectionChanged();
     void anyCatalogChanged();
     void lastExportDirectoryChanged();
@@ -71,6 +77,7 @@ private:
     MediaListModel *m_mediaModel = nullptr;
     TagListModel *m_tagModel = nullptr;
     TagListModel *m_metaTagModel = nullptr;
+    int m_tagRevision = 0;
     int m_selectedCount = 0;
     bool m_anyCatalog = false;
     QString m_lastExportDirectory;

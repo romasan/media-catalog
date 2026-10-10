@@ -106,7 +106,12 @@ Item {
                             required property string modelData
 
                             readonly property bool isMeta: modelData.indexOf("meta:") === 0
-                            readonly property string label: App.library.tagName(modelData)
+                            // App.tagRevision — зависимость: имя тега читается
+                            // функцией, и без неё биндинг не пересчитается.
+                            readonly property string label: {
+                                App.tagRevision;
+                                return App.library.tagName(modelData);
+                            }
 
                             width: chipRow.implicitWidth + 16
                             height: 24
