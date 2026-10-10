@@ -64,6 +64,8 @@ Item {
                 spacing: Theme.spacing
 
                 Button {
+                    id: addFolderButton
+                    objectName: "addFolderButton"
                     text: "Добавить папку…"
                     onClicked: folderDialog.open()
                 }
@@ -163,6 +165,7 @@ Item {
 
         FolderDialog {
             id: folderDialog
+            objectName: "folderDialog"
             title: "Выберите папку для сканирования"
             currentFolder: Qt.url(App.defaultCatalogDirectory)
             // selectedFolder — это URL (file:///…), поэтому приводим его

@@ -34,6 +34,14 @@ int main(int argc, char *argv[])
         QStringLiteral("Каталог данных (по умолчанию — системный каталог приложения)"),
         QStringLiteral("путь"));
     parser.addOption(dataDirOption);
+
+    // Ключ для автоматизации: добавить каталог и запустить сканирование,
+    // не открывая диалог. Полезен для скриптов.
+    const QCommandLineOption addCatalogOption(
+        QStringLiteral("add-catalog"),
+        QStringLiteral("Добавить каталог и сразу запустить сканирование"),
+        QStringLiteral("путь"));
+    parser.addOption(addCatalogOption);
     parser.process(app);
 
     mc::MediaLibrary library;
@@ -60,7 +68,11 @@ int main(int argc, char *argv[])
 
     // Сканирование запускаем после появления окна: пользователь сразу видит
     // прогресс, а не пустой экран.
-    library.requestInitialScan();
+    if (parser.isSet(addCatalogOption)) {
+        library.addCatalog(parser.value(addCatalogOption));
+    } else {
+        library.requestInitialScan();
+    }
 
     return app.exec();
 }

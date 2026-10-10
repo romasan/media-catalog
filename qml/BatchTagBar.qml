@@ -9,6 +9,10 @@ Item {
     implicitHeight: App.hasSelection ? 46 : 0
     visible: implicitHeight > 0
 
+    /// Запрос на открытие менеджера тегов: попап живёт в главном окне, иначе
+    /// он обрезается границами этой панели.
+    signal tagManagerRequested()
+
     Rectangle {
         anchors.fill: parent
         color: Theme.surface
@@ -84,7 +88,7 @@ Item {
             height: 28
             text: "Менеджер тегов…"
             flat: true
-            onClicked: tagManager.open()
+            onClicked: root.tagManagerRequested()
         }
     }
 
@@ -96,10 +100,4 @@ Item {
         tagInput.editText = "";
     }
 
-    TagManagerPopup {
-        id: tagManager
-        anchors.fill: parent
-        visible: false
-        multiSelectMode: true
-    }
 }

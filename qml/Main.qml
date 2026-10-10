@@ -17,7 +17,7 @@ ApplicationWindow {
     color: Theme.background
 
     Item {
-        id: content
+        id: rootItem
         anchors.fill: parent
 
         // Полоса прогресса генерации превью — тонкая линия у верхнего края.
@@ -58,6 +58,7 @@ ApplicationWindow {
             anchors.leftMargin: 12
             anchors.rightMargin: 12
             height: App.hasSelection ? 46 : 0
+            onTagManagerRequested: tagManager.openForSelection()
         }
 
         // Круглая кнопка меню — правый нижний угол.
@@ -76,20 +77,26 @@ ApplicationWindow {
             id: toasts
             anchors.fill: parent
         }
+
+        // Попапы: перекрывают окно, закрываются крестиком, Esc и кликом по фону.
+        CatalogManagerPopup {
+            id: catalogManager
+            objectName: "catalogManager"
+            anchors.fill: parent
+            z: 200
+        }
+
+        TagManagerPopup {
+            id: tagManager
+            objectName: "tagManager"
+            anchors.fill: parent
+            z: 200
+        }
     }
 
     // ==== Попапы ====
-    CatalogManagerPopup {
-        id: catalogManager
-        anchors.fill: parent
-        z: 200
-    }
-
-    TagManagerPopup {
-        id: tagManager
-        anchors.fill: parent
-        z: 200
-    }
+    // Живут внутри корневого Item: у ApplicationWindow может быть только один
+    // визуальный ребёнок, иначе окно не раскладывает содержимое.
 
     // ==== События ядра ====
     Connections {

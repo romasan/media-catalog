@@ -25,6 +25,11 @@ Item {
 
     signal closed()
 
+    /// Общая точка входа: открыть менеджер тегов для выделенных файлов.
+    function open() {
+        openForSelection();
+    }
+
     function openFor(mediaIdValue) {
         multiSelectMode = false;
         mediaId = mediaIdValue;

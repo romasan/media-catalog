@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-10 — Fix popups not opening and not closing
+- Popups never appeared: `ApplicationWindow` accepts a single visual child, and the catalog and tag managers were declared as extra children with `anchors.fill`. Everything now lives under one root item, so the popups open, receive input and close.
+- The tag manager opened from the batch tagging bar was a child of that 46 px bar and was clipped by it; the bar now emits a signal and the popup belongs to the window.
+- TagManagerPopup gained an `open()` entry point for consistency with the catalog manager.
+- Added a `--add-catalog <path>` launch option that adds a catalog and starts scanning without the dialog, useful for scripts and for verifying the core; verified against a real folder of 222 files (222 previews generated, reusing the existing thumbnail cache).
+
 ## 2026-10-10 — Fix catalog scanning, popup closing and restore the 1.x interface
 - Adding a folder did nothing: Qt dialogs return a URL (`file:///…`) and it was passed straight into the path, so `QFileInfo` resolved it against the working directory (`…/file:/Users/…`), the folder was never found and the scan finished with zero files. Dialogs now convert the URL with `urlToLocalFile`, and `Paths::toLocalPath` accepts both forms as a safety net.
 - The burger button is back in the bottom-right corner (a 56 px circle) instead of the window header, and the filter moved from a full-width top bar to a compact panel in the bottom-left, matching the 1.x layout.
