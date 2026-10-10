@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-10 — Show the filter chips in the panel
+- A tag added to the filter from the viewer was applied to the grid but the filter panel stayed 99 px wide with no chips: the chip row used a `Repeater` with a function call as its model, which never re-evaluates, and the row reported no size to its parent. The controller now exposes `filterTags` and `filterMode` as properties with a change signal, and the chip row is an explicit row inside a flickable, so the panel grows and shows the chips.
+- The visible date range under the panel confirms the grid itself was already filtering correctly.
+- Covered by checks: applying a filter tag through the same path the viewer uses narrows the model immediately, and removing it restores the full list.
+
 ## 2026-10-10 — Stop card tooltips from showing through the viewer
 - Hovering over the photo in the viewer showed the tooltip of the grid card underneath: the viewer's click-blocking layer accepted clicks but not hover, so hover events travelled down to the grid. The blocking layer and the media layer now enable hover, the popup backdrop does too, and a card tooltip additionally requires the card to be visible in the active window.
 - Verified with a two-layer probe: with hover enabled the overlay reports the pointer and the layer beneath does not, and without it the event reaches the layer underneath.

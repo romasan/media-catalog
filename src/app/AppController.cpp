@@ -27,6 +27,7 @@ AppController::AppController(MediaLibrary *library, QObject *parent)
         // версию, по которой QML пересчитывает списки тегов.
         ++m_tagRevision;
         emit tagRevisionChanged();
+        emit filterTagsChanged();
 
         const bool hasCatalog = m_library->hasCatalogs();
         if (hasCatalog != m_anyCatalog) {
@@ -56,6 +57,24 @@ bool AppController::anyCatalog() const
 QString AppController::defaultCatalogDirectory() const
 {
     return m_library->defaultCatalogDirectory();
+}
+
+QVariantList AppController::filterTags() const
+{
+    QVariantList result;
+    for (const QString &tagId : m_library->filterTagIds()) {
+        QVariantMap entry;
+        entry.insert(QStringLiteral("id"), tagId);
+        entry.insert(QStringLiteral("name"), m_library->tagName(tagId));
+        entry.insert(QStringLiteral("isMeta"), tagId.startsWith(QLatin1String("meta:")));
+        result.append(entry);
+    }
+    return result;
+}
+
+QString AppController::filterMode() const
+{
+    return m_library->filterMode();
 }
 
 QString AppController::applicationVersion() const

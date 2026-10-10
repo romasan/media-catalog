@@ -11,6 +11,7 @@ import MediaCatalog
 //   - счётчик отражает активный фильтр (или весь каталог, если фильтр пуст).
 Item {
     id: root
+    objectName: "filterBar"
 
     implicitWidth: Math.min(panel.implicitWidth, 320)
     implicitHeight: panel.implicitHeight
@@ -33,7 +34,7 @@ Item {
             // Переключатель режима: «все» (И) или «любой» (ИЛИ).
             Rectangle {
                 id: modeToggle
-                visible: App.library.filterTagIds().length > 1
+                visible: App.filterTags.length > 1
                 width: parent.width
                 height: visible ? 26 : 0
                 color: Theme.surfaceAlt
@@ -58,13 +59,13 @@ Item {
                             width: (modeToggle.width - 10) / 2
                             height: parent.height
                             radius: 4
-                            color: App.library.filterMode === modelData.mode
+                            color: App.filterMode === modelData.mode
                                    ? Theme.accent : "transparent"
 
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData.label
-                                color: App.library.filterMode === modelData.mode
+                                color: App.filterMode === modelData.mode
                                        ? "#ffffff" : Theme.textMuted
                                 font.pixelSize: 12
                             }
@@ -94,24 +95,30 @@ Item {
                 spacing: Theme.spacing
 
                 // Чипы выбранных тегов.
-                Flow {
+                Flickable {
                     id: chips
-                    width: Math.min(implicitWidth, 220)
-                    spacing: 6
+                    width: Math.min(chipRow.width, 220)
+                    height: chipRow.height
+                    contentWidth: chipRow.width
+                    contentHeight: height
+                    visible: chipRow.width > 0
+                    flickableDirection: Flickable.HorizontalFlick
+                    boundsBehavior: Flickable.StopAtBounds
+                    clip: true
+
+                    Row {
+                        id: chipRow
+                        objectName: "chipRow"
+                        spacing: 6
 
                     Repeater {
-                        model: App.library.filterTagIds()
+                        model: App.filterTags
 
                         delegate: Rectangle {
-                            required property string modelData
+                            required property var modelData
 
-                            readonly property bool isMeta: modelData.indexOf("meta:") === 0
-                            // App.tagRevision — зависимость: имя тега читается
-                            // функцией, и без неё биндинг не пересчитается.
-                            readonly property string label: {
-                                App.tagRevision;
-                                return App.library.tagName(modelData);
-                            }
+                            readonly property bool isMeta: modelData.isMeta
+                            readonly property string label: modelData.name
 
                             width: chipRow.implicitWidth + 16
                             height: 24
@@ -143,7 +150,7 @@ Item {
                                 id: closeArea
                                 anchors.fill: parent
                                 hoverEnabled: true
-                                onClicked: App.library.removeTagFromFilter(modelData)
+                                onClicked: App.library.removeTagFromFilter(modelData.id)
                             }
 
                             ToolTip.text: parent.isMeta ? "Удалить метатег из фильтра"
@@ -151,6 +158,7 @@ Item {
                             ToolTip.visible: closeArea.containsMouse
                             ToolTip.delay: 600
                         }
+                    }
                     }
                 }
 

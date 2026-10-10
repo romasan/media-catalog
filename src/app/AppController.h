@@ -34,6 +34,11 @@ class AppController : public QObject
     /// его как зависимость: методы вида `userTags(id)` — обычные функции, и без
     /// такой зависимости биндинг не пересчитывается после применения тега.
     Q_PROPERTY(int tagRevision READ tagRevision NOTIFY tagRevisionChanged)
+    /// Теги, выбранные в фильтре. Отдельное свойство с сигналом: Repeater
+    /// с моделью из вызова функции не обновляется при изменении фильтра.
+    Q_PROPERTY(QVariantList filterTags READ filterTags NOTIFY filterTagsChanged)
+    /// Режим фильтра: AND («все») или OR («любой»).
+    Q_PROPERTY(QString filterMode READ filterMode NOTIFY filterTagsChanged)
 
 public:
     explicit AppController(MediaLibrary *library, QObject *parent = nullptr);
@@ -50,6 +55,8 @@ public:
     QString lastExportDirectory() const { return m_lastExportDirectory; }
     QString applicationVersion() const;
     int tagRevision() const { return m_tagRevision; }
+    QVariantList filterTags() const;
+    QString filterMode() const;
 
     Q_INVOKABLE void addCatalog(const QString &path);
     Q_INVOKABLE void removeCatalog(const QString &catalogId);
@@ -66,6 +73,7 @@ public:
 
 signals:
     void tagRevisionChanged();
+    void filterTagsChanged();
     void selectionChanged();
     void anyCatalogChanged();
     void lastExportDirectoryChanged();

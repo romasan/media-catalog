@@ -352,6 +352,37 @@ int main(int argc, char *argv[])
               QStringLiteral("снятие тега убирает его из фильтра"));
     }
 
+    // ==== Фильтр из просмотра: сетка и панель обновляются сразу ====
+    // Клик по чипу тега в просмотре вызывает addTagToFilter, и модель должна
+    // перестроиться без перезагрузки списка вручную.
+    {
+        const int total = mediaModel.rowCount();
+        checkEqual(total, 3, QStringLiteral("в списке три файла"));
+
+        // Помечаем только один файл, чтобы фильтр действительно сузил список.
+        const QString onlyTag = library.createTag(QStringLiteral("только-один"));
+        library.applyTag(firstId, onlyTag);
+        checkEqual(mediaModel.rowCount(), total,
+                   QStringLiteral("применение тега список не меняет"));
+
+        library.addTagToFilter(onlyTag);
+        check(library.filterTagIds().contains(onlyTag),
+              QStringLiteral("тег добавлен в фильтр"));
+        checkEqual(mediaModel.rowCount(), 1,
+                   QStringLiteral("сетка сразу показала только помеченный файл"));
+        checkEqual(mediaModel.rowCount(), library.filteredMedia().size(),
+                   QStringLiteral("модель совпадает с результатом фильтра"));
+        checkEqual(mediaModel.data(mediaModel.index(0, 0), MediaListModel::IdRole).toString(),
+                   firstId, QStringLiteral("в списке именно помеченный файл"));
+
+        library.removeTagFromFilter(onlyTag);
+        checkEqual(mediaModel.rowCount(), total,
+                   QStringLiteral("снятие условия вернуло все файлы"));
+
+        library.removeTagFromMedia(firstId, onlyTag);
+        library.deleteTag(onlyTag);
+    }
+
     // ==== Просмотр держится за файл, а не за индекс ====
     // После изменения фильтра список перестраивается: по индексу просмотр
     // показал бы другой файл, и теги «терялись».
