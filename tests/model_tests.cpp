@@ -305,6 +305,10 @@ int main(int argc, char *argv[])
     checkEqual(library.mediaCount(), 0, QStringLiteral("удаление каталога очистило файлы"));
     checkEqual(mediaModel.rowCount(), 0, QStringLiteral("модель медиа опустела"));
 
+    // Останавливаем фоновые задачи до выхода: это проверяет и корректность
+    // завершения, и отсутствие обращений к базе после разрушения.
+    library.shutdown();
+
     QTextStream(stdout) << "\nПроверок: " << g_checks << ", провалов: " << g_failures << '\n';
     return g_failures == 0 ? 0 : 1;
 }

@@ -50,6 +50,10 @@ public:
     /// Число одновременно работающих ffmpeg-процессов.
     int concurrency() const;
 
+    /// Останавливает очередь и дожидается завершения запущенных процессов.
+    /// После вызова новые задачи не принимаются.
+    void stop();
+
     bool isIdle() const;
 
 signals:
@@ -79,6 +83,7 @@ private:
     int m_total = 0;
     int m_processed = 0;
     QTimer *m_progressTimer = nullptr;
+    bool m_stopped = false;
 };
 
 } // namespace mc

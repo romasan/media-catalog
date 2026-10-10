@@ -7,6 +7,7 @@
 #include "core/MetadataReader.h"
 #include "core/ThumbnailGenerator.h"
 
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
@@ -87,15 +88,43 @@ MediaLibrary::MediaLibrary(QObject *parent)
 
 MediaLibrary::~MediaLibrary()
 {
+    shutdown();
+}
+
+void MediaLibrary::shutdown()
+{
+    if (m_shutdown) {
+        return;
+    }
+    m_shutdown = true;
+    m_scanQueued = false;
+
+    // 1. Обрываем связи: отложенные сигналы рабочих потоков не должны прийти
+    //    на разрушаемый объект.
+    if (m_thumbnails) {
+        m_thumbnails->disconnect(this);
+    }
+    if (m_scanner) {
+        m_scanner->disconnect(this);
+    }
+
+    // 2. Дожидаемся завершения сканирования и записи дат съёмки.
     if (m_scanFuture.isRunning()) {
         m_scanFuture.waitForFinished();
-    }
-    if (m_scanPool) {
-        m_scanPool->waitForDone();
     }
     if (m_metadataPool) {
         m_metadataPool->waitForDone();
     }
+
+    // 3. Только теперь останавливаем пул превью: его задачи трогают базу,
+    //    поэтому база должна быть жива до их завершения.
+    if (m_thumbnails) {
+        m_thumbnails->stop();
+    }
+
+    // 4. Снимаем с очереди сигналы, которые уже успели накопиться, чтобы они
+    //    не сработали после разрушения объектов.
+    QCoreApplication::removePostedEvents(this);
 }
 
 bool MediaLibrary::initialize(const QString &overrideDataDir)

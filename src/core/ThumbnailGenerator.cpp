@@ -142,6 +142,14 @@ ThumbnailGenerator::ThumbnailGenerator(CatalogDatabase &database, const AppPaths
 
 ThumbnailGenerator::~ThumbnailGenerator()
 {
+    stop();
+}
+
+void ThumbnailGenerator::stop()
+{
+    m_stopped = true;
+    m_queue.clear();
+    m_knownPaths.clear();
     if (m_pool) {
         m_pool->waitForDone();
     }
@@ -165,7 +173,7 @@ void ThumbnailGenerator::enqueue(const MediaFile &file)
 
 void ThumbnailGenerator::enqueue(const QList<MediaFile> &files)
 {
-    if (m_ffmpeg.isEmpty()) {
+    if (m_stopped || m_ffmpeg.isEmpty()) {
         return; // ffmpeg не найден — превью сгенерировать нечем
     }
 

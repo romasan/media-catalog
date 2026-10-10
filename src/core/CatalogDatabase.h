@@ -8,6 +8,7 @@
 #include <QSqlDatabase>
 #include <QString>
 #include <QStringList>
+#include <QThread>
 
 namespace mc {
 
@@ -37,7 +38,10 @@ struct ImportSummary {
 ///   - captured_at = NULL означает «дата съёмки ещё не вычислялась»,
 ///     что отличается от «вычислялась и не найдена» (0).
 ///
-/// Класс не потокобезопасен: все обращения идут из потока владельца.
+/// Многопоточность: `QSqlDatabase` нельзя использовать из нескольких потоков,
+/// поэтому каждому потоку выдаётся отдельное соединение к тому же файлу
+/// (шаблон Qt «connection per thread»). Соединения создаются лениво и
+/// закрываются в деструкторе. Режим WAL позволяет читать и писать параллельно.
 class CatalogDatabase
 {
 public:
@@ -119,16 +123,26 @@ public:
     /// Восстанавливает связи тегов, выраженные именами тегов и путями файлов.
     void applyImportedRelations(const ImportSummary &summary);
 
+public:
+    /// База данных для текущего потока. Соединение создаётся при первом
+    /// обращении из потока. Возвращает недействительную базу, если соединение
+    /// открыть не удалось (детали — в lastError()).
+    QSqlDatabase threadConnection();
+    QSqlDatabase threadConnection() const;
+
 private:
     bool createSchema();
+    bool createSchema(QSqlDatabase &db);
     /// Приводит имена тегов к нижнему регистру и склеивает дубликаты.
     void normalizeTagNames();
     void cleanupOrphanTags();
     void removeMediaTagsFor(const QStringList &mediaIds);
+    bool exec(QSqlDatabase &db, const QString &sql);
+    /// Короткая форма: выполнить в соединении текущего потока.
     bool exec(const QString &sql);
 
-    QSqlDatabase m_db;
-    QString m_connectionName;
+    QString m_databaseFile;
+    QString m_baseConnectionName;
     QString m_lastError;
 };
 

@@ -8,7 +8,10 @@
 #include <QFileInfo>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QMutex>
+#include <QMutexLocker>
 #include <QSqlRecord>
+#include <QThreadStorage>
 #include <QUuid>
 #include <QVariant>
 
@@ -74,9 +77,63 @@ QString sqlInPlaceholders(int count)
 
 } // namespace
 
-CatalogDatabase::CatalogDatabase()
-    : m_connectionName(QStringLiteral("mc_%1").arg(reinterpret_cast<quintptr>(this), 0, 16))
+namespace {
+
+/// Хранилище соединений по потокам. Ключ — имя базового соединения, значение —
+/// имя соединения этого потока.
+QThreadStorage<QHash<QString, QString> *> &connectionNames()
 {
+    static QThreadStorage<QHash<QString, QString> *> storage;
+    return storage;
+}
+
+QMutex &connectionsMutex()
+{
+    static QMutex mutex;
+    return mutex;
+}
+
+} // namespace
+
+CatalogDatabase::CatalogDatabase()
+    : m_baseConnectionName(QStringLiteral("mc_%1").arg(reinterpret_cast<quintptr>(this), 0, 16))
+{
+}
+
+QSqlDatabase CatalogDatabase::threadConnection()
+{
+    return const_cast<const CatalogDatabase *>(this)->threadConnection();
+}
+
+QSqlDatabase CatalogDatabase::threadConnection() const
+{
+    // Соединение для текущего потока, создаётся при первом обращении.
+    QThreadStorage<QHash<QString, QString> *> &storage = connectionNames();
+    if (!storage.hasLocalData()) {
+        storage.setLocalData(new QHash<QString, QString>());
+    }
+    QHash<QString, QString> *names = storage.localData();
+
+    QString connectionName = names->value(m_baseConnectionName);
+    if (connectionName.isEmpty()) {
+        connectionName = QStringLiteral("%1_t%2")
+                             .arg(m_baseConnectionName)
+                             .arg(reinterpret_cast<quintptr>(QThread::currentThread()), 0, 16);
+        QMutexLocker locker(&connectionsMutex());
+        QSqlDatabase db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connectionName);
+        db.setDatabaseName(m_databaseFile);
+        names->insert(m_baseConnectionName, connectionName);
+    }
+
+    QSqlDatabase db = QSqlDatabase::database(connectionName, false);
+
+    // Соединение открывается при первом обращении из потока: у каждого потока
+    // своё соединение к тому же файлу.
+    if (db.isValid() && !db.isOpen() && !m_databaseFile.isEmpty()) {
+        // Если соединение не открылось, ошибка доступна через db.lastError().
+        db.open();
+    }
+    return db;
 }
 
 CatalogDatabase::~CatalogDatabase()
@@ -86,23 +143,41 @@ CatalogDatabase::~CatalogDatabase()
 
 void CatalogDatabase::close()
 {
-    if (m_db.isOpen()) {
-        m_db.close();
-    }
-    m_db = QSqlDatabase();
-    if (QSqlDatabase::contains(m_connectionName)) {
-        QSqlDatabase::removeDatabase(m_connectionName);
+    m_databaseFile.clear();
+
+    // Закрываем соединение текущего потока; соединения других потоков
+    // закрываются при их завершении (QThreadStorage освобождает хранилище).
+    QThreadStorage<QHash<QString, QString> *> &storage = connectionNames();
+    if (storage.hasLocalData()) {
+        QHash<QString, QString> *names = storage.localData();
+        const QString connectionName = names->take(m_baseConnectionName);
+        if (!connectionName.isEmpty() && QSqlDatabase::contains(connectionName)) {
+            {
+                QSqlDatabase db = QSqlDatabase::database(connectionName, false);
+                if (db.isOpen()) {
+                    db.close();
+                }
+            }
+            QMutexLocker locker(&connectionsMutex());
+            QSqlDatabase::removeDatabase(connectionName);
+        }
     }
 }
 
-bool CatalogDatabase::exec(const QString &sql)
+bool CatalogDatabase::exec(QSqlDatabase &db, const QString &sql)
 {
-    QSqlQuery query(m_db);
+    QSqlQuery query(db);
     if (!query.exec(sql)) {
         m_lastError = query.lastError().text();
         return false;
     }
     return true;
+}
+
+bool CatalogDatabase::exec(const QString &sql)
+{
+    QSqlDatabase db = threadConnection();
+    return exec(db, sql);
 }
 
 bool CatalogDatabase::open(const QString &databaseFile)
@@ -115,20 +190,22 @@ bool CatalogDatabase::open(const QString &databaseFile)
         return false;
     }
 
-    m_db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), m_connectionName);
-    m_db.setDatabaseName(databaseFile);
-    if (!m_db.open()) {
-        m_lastError = m_db.lastError().text();
+    m_databaseFile = databaseFile;
+
+    QSqlDatabase db = threadConnection();
+    if (!db.open()) {
+        m_lastError = db.lastError().text();
         return false;
     }
 
-    // WAL даёт устойчивость к обрыву записи и параллельное чтение.
-    // foreign_keys включаем явно — SQLite по умолчанию их игнорирует.
-    exec(QStringLiteral("PRAGMA journal_mode = WAL"));
-    exec(QStringLiteral("PRAGMA synchronous = NORMAL"));
-    exec(QStringLiteral("PRAGMA foreign_keys = ON"));
+    // WAL даёт устойчивость к обрыву записи и параллельное чтение из других
+    // соединений (по одному на поток). foreign_keys включаем явно — SQLite по
+    // умолчанию их игнорирует.
+    exec(db, QStringLiteral("PRAGMA journal_mode = WAL"));
+    exec(db, QStringLiteral("PRAGMA synchronous = NORMAL"));
+    exec(db, QStringLiteral("PRAGMA foreign_keys = ON"));
 
-    if (!createSchema()) {
+    if (!createSchema(db)) {
         return false;
     }
 
@@ -136,7 +213,7 @@ bool CatalogDatabase::open(const QString &databaseFile)
     return true;
 }
 
-bool CatalogDatabase::createSchema()
+bool CatalogDatabase::createSchema(QSqlDatabase &db)
 {
     const QStringList statements = {
         QStringLiteral("CREATE TABLE IF NOT EXISTS catalogs ("
@@ -171,12 +248,12 @@ bool CatalogDatabase::createSchema()
     };
 
     for (const QString &statement : statements) {
-        if (!exec(statement)) {
+        if (!exec(db, statement)) {
             return false;
         }
     }
 
-    QSqlQuery versionQuery(m_db);
+    QSqlQuery versionQuery(db);
     if (versionQuery.exec(QStringLiteral("PRAGMA user_version")) && versionQuery.next()) {
         const int version = versionQuery.value(0).toInt();
         if (version > kSchemaVersion) {
@@ -185,7 +262,7 @@ bool CatalogDatabase::createSchema()
         }
     }
 
-    return exec(QStringLiteral("PRAGMA user_version = %1").arg(kSchemaVersion));
+    return exec(db, QStringLiteral("PRAGMA user_version = %1").arg(kSchemaVersion));
 }
 
 // ==== Каталоги ====
@@ -193,7 +270,8 @@ bool CatalogDatabase::createSchema()
 QList<Catalog> CatalogDatabase::catalogs() const
 {
     QList<Catalog> result;
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("SELECT id, path FROM catalogs ORDER BY rowid"));
     if (!query.exec()) {
         return result;
@@ -211,7 +289,8 @@ Catalog CatalogDatabase::addCatalog(const QString &path)
 {
     const QString normalized = normalizedPath(path);
 
-    QSqlQuery findQuery(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery findQuery(db);
     findQuery.prepare(QStringLiteral("SELECT id, path FROM catalogs WHERE path = ?"));
     findQuery.addBindValue(textValue(normalized));
     if (findQuery.exec() && findQuery.next()) {
@@ -219,7 +298,7 @@ Catalog CatalogDatabase::addCatalog(const QString &path)
     }
 
     Catalog catalog{newId(), normalized};
-    QSqlQuery insertQuery(m_db);
+    QSqlQuery insertQuery(threadConnection());
     insertQuery.prepare(QStringLiteral("INSERT INTO catalogs (id, path) VALUES (?, ?)"));
     insertQuery.addBindValue(textValue(catalog.id));
     insertQuery.addBindValue(textValue(catalog.path));
@@ -232,7 +311,7 @@ Catalog CatalogDatabase::addCatalog(const QString &path)
 void CatalogDatabase::removeCatalog(const QString &catalogId)
 {
     QStringList mediaIds;
-    QSqlQuery idsQuery(m_db);
+    QSqlQuery idsQuery(threadConnection());
     idsQuery.prepare(QStringLiteral("SELECT id FROM media WHERE catalog_id = ?"));
     idsQuery.addBindValue(textValue(catalogId));
     if (idsQuery.exec()) {
@@ -243,12 +322,12 @@ void CatalogDatabase::removeCatalog(const QString &catalogId)
 
     removeMediaTagsFor(mediaIds);
 
-    QSqlQuery deleteMedia(m_db);
+    QSqlQuery deleteMedia(threadConnection());
     deleteMedia.prepare(QStringLiteral("DELETE FROM media WHERE catalog_id = ?"));
     deleteMedia.addBindValue(textValue(catalogId));
     deleteMedia.exec();
 
-    QSqlQuery deleteCatalog(m_db);
+    QSqlQuery deleteCatalog(threadConnection());
     deleteCatalog.prepare(QStringLiteral("DELETE FROM catalogs WHERE id = ?"));
     deleteCatalog.addBindValue(textValue(catalogId));
     deleteCatalog.exec();
@@ -259,7 +338,8 @@ void CatalogDatabase::removeCatalog(const QString &catalogId)
 QList<CatalogStats> CatalogDatabase::catalogStats() const
 {
     QList<CatalogStats> result;
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "SELECT catalog_id,"
         "       SUM(CASE WHEN kind = 'photo' THEN 1 ELSE 0 END),"
@@ -280,7 +360,8 @@ QList<CatalogStats> CatalogDatabase::catalogStats() const
 
 int CatalogDatabase::mediaCount() const
 {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("SELECT COUNT(*) FROM media"));
     if (query.exec() && query.next()) {
         return query.value(0).toInt();
@@ -290,7 +371,8 @@ int CatalogDatabase::mediaCount() const
 
 int CatalogDatabase::mediaCountByKind(MediaKind kind) const
 {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("SELECT COUNT(*) FROM media WHERE kind = ?"));
     query.addBindValue(textValue(kindToString(kind)));
     if (query.exec() && query.next()) {
@@ -301,7 +383,8 @@ int CatalogDatabase::mediaCountByKind(MediaKind kind) const
 
 int CatalogDatabase::tagCount() const
 {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("SELECT COUNT(*) FROM tags"));
     if (query.exec() && query.next()) {
         return query.value(0).toInt();
@@ -311,7 +394,8 @@ int CatalogDatabase::tagCount() const
 
 int CatalogDatabase::untaggedCount() const
 {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "SELECT COUNT(*) FROM media m"
         " WHERE NOT EXISTS (SELECT 1 FROM media_tags mt WHERE mt.media_id = m.id)"));
@@ -326,10 +410,11 @@ void CatalogDatabase::rebuildAllPaths(const QStringList &orderedCatalogPaths)
     QList<Catalog> allCatalogs = catalogs();
     QList<MediaFile> allMedia = mediaFiles();
 
-    QSqlQuery update(m_db);
+    QSqlQuery update(threadConnection());
     update.prepare(QStringLiteral("UPDATE media SET catalog_id = ? WHERE id = ?"));
 
-    m_db.transaction();
+    QSqlDatabase transactionDb = threadConnection();
+    transactionDb.transaction();
     for (const MediaFile &media : std::as_const(allMedia)) {
         QString ownerId;
         for (const QString &catalogPath : orderedCatalogPaths) {
@@ -347,7 +432,7 @@ void CatalogDatabase::rebuildAllPaths(const QStringList &orderedCatalogPaths)
         update.addBindValue(textValue(media.id));
         update.exec();
     }
-    m_db.commit();
+    transactionDb.commit();
 }
 
 // ==== Медиафайлы ====
@@ -355,7 +440,8 @@ void CatalogDatabase::rebuildAllPaths(const QStringList &orderedCatalogPaths)
 QList<MediaFile> CatalogDatabase::mediaFiles() const
 {
     QList<MediaFile> result;
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "SELECT id, path, name, kind, size, created_at, modified_at, catalog_id,"
         "       thumbnail_path, thumbnail_retries, captured_at"
@@ -388,7 +474,8 @@ QList<MediaFile> CatalogDatabase::mediaFiles() const
 QList<MediaFile> CatalogDatabase::mediaFilesByCatalog(const QString &catalogId) const
 {
     QList<MediaFile> result;
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "SELECT id, path, name, kind, size, created_at, modified_at, catalog_id,"
         "       thumbnail_path, thumbnail_retries, captured_at"
@@ -421,7 +508,8 @@ QList<MediaFile> CatalogDatabase::mediaFilesByCatalog(const QString &catalogId) 
 
 bool CatalogDatabase::mediaFileById(const QString &mediaId, MediaFile *out) const
 {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "SELECT id, path, name, kind, size, created_at, modified_at, catalog_id,"
         "       thumbnail_path, thumbnail_retries, captured_at"
@@ -458,7 +546,8 @@ QList<MediaFile> CatalogDatabase::mediaFilesByPaths(const QSet<QString> &paths) 
     }
 
     const QStringList pathList = paths.values();
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral(
                       "SELECT id, path, name, kind, size, created_at, modified_at, catalog_id,"
                       "       thumbnail_path, thumbnail_retries, captured_at"
@@ -495,7 +584,8 @@ QList<MediaFile> CatalogDatabase::mediaFilesByPaths(const QSet<QString> &paths) 
 QList<MediaFile> CatalogDatabase::mediaWithoutThumbnail() const
 {
     QList<MediaFile> result;
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "SELECT id, path, name, kind, size, created_at, modified_at, catalog_id,"
         "       thumbnail_path, thumbnail_retries, captured_at"
@@ -532,7 +622,8 @@ int CatalogDatabase::upsertMedia(const QList<MediaFile> &files)
     }
 
     int added = 0;
-    const bool inTransaction = m_db.transaction();
+    QSqlDatabase transactionDb = threadConnection();
+    const bool inTransaction = transactionDb.transaction();
 
     for (const MediaFile &media : files) {
         const QString path = normalizedPath(media.path);
@@ -543,7 +634,7 @@ int CatalogDatabase::upsertMedia(const QList<MediaFile> &files)
         // а id нового файла генерируется здесь.
         bool exists = false;
         {
-            QSqlQuery existsQuery(m_db);
+            QSqlQuery existsQuery(threadConnection());
             existsQuery.prepare(QStringLiteral("SELECT 1 FROM media WHERE path = ?"));
             existsQuery.addBindValue(textValue(path));
             if (!existsQuery.exec()) {
@@ -554,7 +645,7 @@ int CatalogDatabase::upsertMedia(const QList<MediaFile> &files)
         }
 
         if (exists) {
-            QSqlQuery updateQuery(m_db);
+            QSqlQuery updateQuery(threadConnection());
             updateQuery.prepare(QStringLiteral(
                 "UPDATE media SET name = ?, kind = ?, size = ?, created_at = ?, modified_at = ?,"
                 "                 catalog_id = ?"
@@ -572,7 +663,7 @@ int CatalogDatabase::upsertMedia(const QList<MediaFile> &files)
             continue;
         }
 
-        QSqlQuery insertQuery(m_db);
+        QSqlQuery insertQuery(threadConnection());
         insertQuery.prepare(QStringLiteral(
             "INSERT INTO media (id, path, name, kind, size, created_at, modified_at, catalog_id,"
             "                   thumbnail_path, thumbnail_retries, captured_at)"
@@ -602,8 +693,8 @@ int CatalogDatabase::upsertMedia(const QList<MediaFile> &files)
         }
     }
 
-    if (inTransaction && !m_db.commit()) {
-        m_lastError = m_db.lastError().text();
+    if (inTransaction && !threadConnection().commit()) {
+        m_lastError = transactionDb.lastError().text();
     }
     return added;
 }
@@ -615,7 +706,7 @@ QStringList CatalogDatabase::removeMediaByPaths(const QSet<QString> &paths)
         return removedIds;
     }
 
-    QSqlQuery idsQuery(m_db);
+    QSqlQuery idsQuery(threadConnection());
     idsQuery.prepare(QStringLiteral("SELECT id FROM media WHERE path IN (%1)")
                          .arg(sqlInPlaceholders(paths.size())));
     for (const QString &path : paths) {
@@ -629,7 +720,7 @@ QStringList CatalogDatabase::removeMediaByPaths(const QSet<QString> &paths)
 
     removeMediaTagsFor(removedIds);
 
-    QSqlQuery deleteQuery(m_db);
+    QSqlQuery deleteQuery(threadConnection());
     deleteQuery.prepare(QStringLiteral("DELETE FROM media WHERE path IN (%1)")
                             .arg(sqlInPlaceholders(paths.size())));
     for (const QString &path : paths) {
@@ -643,7 +734,8 @@ QStringList CatalogDatabase::removeMediaByPaths(const QSet<QString> &paths)
 
 bool CatalogDatabase::updateThumbnail(const QString &mediaId, const QString &thumbnailPath)
 {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("UPDATE media SET thumbnail_path = ? WHERE id = ?"));
     query.addBindValue(textValue(thumbnailPath));
     query.addBindValue(textValue(mediaId));
@@ -656,7 +748,8 @@ bool CatalogDatabase::updateThumbnail(const QString &mediaId, const QString &thu
 
 bool CatalogDatabase::incrementThumbnailRetries(const QString &mediaId)
 {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "UPDATE media SET thumbnail_retries = thumbnail_retries + 1 WHERE id = ?"));
     query.addBindValue(textValue(mediaId));
@@ -665,7 +758,7 @@ bool CatalogDatabase::incrementThumbnailRetries(const QString &mediaId)
         return false;
     }
 
-    QSqlQuery readQuery(m_db);
+    QSqlQuery readQuery(threadConnection());
     readQuery.prepare(QStringLiteral("SELECT thumbnail_retries FROM media WHERE id = ?"));
     readQuery.addBindValue(textValue(mediaId));
     if (readQuery.exec() && readQuery.next()) {
@@ -676,7 +769,8 @@ bool CatalogDatabase::incrementThumbnailRetries(const QString &mediaId)
 
 bool CatalogDatabase::updateCapturedAt(const QString &mediaId, qint64 capturedAt)
 {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("UPDATE media SET captured_at = ? WHERE id = ?"));
     query.addBindValue(capturedAt);
     query.addBindValue(textValue(mediaId));
@@ -689,7 +783,8 @@ bool CatalogDatabase::updateCapturedAt(const QString &mediaId, qint64 capturedAt
 
 bool CatalogDatabase::markCapturedAtMissing(const QString &mediaId)
 {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("UPDATE media SET captured_at = 0 WHERE id = ?"));
     query.addBindValue(textValue(mediaId));
     if (!query.exec()) {
@@ -704,7 +799,8 @@ bool CatalogDatabase::markCapturedAtMissing(const QString &mediaId)
 QList<Tag> CatalogDatabase::tags() const
 {
     QList<Tag> result;
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("SELECT id, name, last_used_at FROM tags ORDER BY name"));
     if (!query.exec()) {
         return result;
@@ -722,7 +818,8 @@ QList<Tag> CatalogDatabase::tags() const
 QList<TagUsage> CatalogDatabase::tagUsages() const
 {
     QList<TagUsage> result;
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "SELECT t.id, t.name, t.last_used_at, COUNT(mt.media_id)"
         "  FROM tags t LEFT JOIN media_tags mt ON mt.tag_id = t.id"
@@ -768,7 +865,8 @@ QList<TagUsage> CatalogDatabase::searchTags(const QString &query, int limit) con
 QList<Tag> CatalogDatabase::mediaTags(const QString &mediaId) const
 {
     QList<Tag> result;
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral(
         "SELECT t.id, t.name, t.last_used_at"
         "  FROM tags t JOIN media_tags mt ON mt.tag_id = t.id"
@@ -797,7 +895,8 @@ Tag CatalogDatabase::createTag(const QString &name)
     }
 
     Tag tag{newId(), normalized, 0};
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("INSERT INTO tags (id, name, last_used_at) VALUES (?, ?, 0)"));
     query.addBindValue(textValue(tag.id));
     query.addBindValue(textValue(tag.name));
@@ -809,7 +908,8 @@ Tag CatalogDatabase::createTag(const QString &name)
 
 bool CatalogDatabase::findTagByName(const QString &name, Tag *out) const
 {
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("SELECT id, name, last_used_at FROM tags WHERE name = ?"));
     query.addBindValue(textValue(normalizedTagName(name)));
     if (!query.exec() || !query.next()) {
@@ -825,12 +925,12 @@ bool CatalogDatabase::findTagByName(const QString &name, Tag *out) const
 
 void CatalogDatabase::deleteTag(const QString &tagId)
 {
-    QSqlQuery deleteLinks(m_db);
+    QSqlQuery deleteLinks(threadConnection());
     deleteLinks.prepare(QStringLiteral("DELETE FROM media_tags WHERE tag_id = ?"));
     deleteLinks.addBindValue(textValue(tagId));
     deleteLinks.exec();
 
-    QSqlQuery deleteTag(m_db);
+    QSqlQuery deleteTag(threadConnection());
     deleteTag.prepare(QStringLiteral("DELETE FROM tags WHERE id = ?"));
     deleteTag.addBindValue(textValue(tagId));
     deleteTag.exec();
@@ -847,8 +947,9 @@ void CatalogDatabase::applyTagToMedia(const QStringList &mediaIds, const QString
         return;
     }
 
-    m_db.transaction();
-    QSqlQuery insert(m_db);
+    QSqlDatabase transactionDb = threadConnection();
+    transactionDb.transaction();
+    QSqlQuery insert(threadConnection());
     insert.prepare(QStringLiteral(
         "INSERT OR IGNORE INTO media_tags (media_id, tag_id) VALUES (?, ?)"));
     for (const QString &mediaId : mediaIds) {
@@ -857,17 +958,17 @@ void CatalogDatabase::applyTagToMedia(const QStringList &mediaIds, const QString
         insert.exec();
     }
 
-    QSqlQuery touch(m_db);
+    QSqlQuery touch(threadConnection());
     touch.prepare(QStringLiteral("UPDATE tags SET last_used_at = ? WHERE id = ?"));
     touch.addBindValue(QDateTime::currentMSecsSinceEpoch());
     touch.addBindValue(textValue(tagId));
     touch.exec();
-    m_db.commit();
+    transactionDb.commit();
 }
 
 void CatalogDatabase::removeTagFromMedia(const QString &mediaId, const QString &tagId)
 {
-    QSqlQuery deleteLink(m_db);
+    QSqlQuery deleteLink(threadConnection());
     deleteLink.prepare(QStringLiteral("DELETE FROM media_tags WHERE media_id = ? AND tag_id = ?"));
     deleteLink.addBindValue(textValue(mediaId));
     deleteLink.addBindValue(textValue(tagId));
@@ -875,11 +976,11 @@ void CatalogDatabase::removeTagFromMedia(const QString &mediaId, const QString &
 
     // Тег больше не используется — сбрасываем время последнего применения,
     // но сам тег сохраняем.
-    QSqlQuery countQuery(m_db);
+    QSqlQuery countQuery(threadConnection());
     countQuery.prepare(QStringLiteral("SELECT COUNT(*) FROM media_tags WHERE tag_id = ?"));
     countQuery.addBindValue(textValue(tagId));
     if (countQuery.exec() && countQuery.next() && countQuery.value(0).toInt() == 0) {
-        QSqlQuery reset(m_db);
+        QSqlQuery reset(threadConnection());
         reset.prepare(QStringLiteral("UPDATE tags SET last_used_at = 0 WHERE id = ? AND last_used_at > 0"));
         reset.addBindValue(textValue(tagId));
         reset.exec();
@@ -889,7 +990,8 @@ void CatalogDatabase::removeTagFromMedia(const QString &mediaId, const QString &
 QSet<QString> CatalogDatabase::taggedMediaIds() const
 {
     QSet<QString> result;
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("SELECT DISTINCT media_id FROM media_tags"));
     if (!query.exec()) {
         return result;
@@ -903,7 +1005,8 @@ QSet<QString> CatalogDatabase::taggedMediaIds() const
 QSet<QString> CatalogDatabase::mediaIdsByTag(const QString &tagId) const
 {
     QSet<QString> result;
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("SELECT media_id FROM media_tags WHERE tag_id = ?"));
     query.addBindValue(textValue(tagId));
     if (!query.exec()) {
@@ -921,27 +1024,28 @@ void CatalogDatabase::applyImportedRelations(const ImportSummary &summary)
 {
     // Связи приходят путями файлов: после сканирования идентификаторы
     // медиафайлов могли измениться.
-    m_db.transaction();
+    QSqlDatabase transactionDb = threadConnection();
+    transactionDb.transaction();
     for (const auto &[mediaPath, tagName] : summary.mediaTagPaths) {
         Tag tag;
         if (!findTagByName(tagName, &tag)) {
             continue;
         }
 
-        QSqlQuery mediaQuery(m_db);
+        QSqlQuery mediaQuery(threadConnection());
         mediaQuery.prepare(QStringLiteral("SELECT id FROM media WHERE path = ?"));
         mediaQuery.addBindValue(textValue(normalizedPath(mediaPath)));
         if (!mediaQuery.exec() || !mediaQuery.next()) {
             continue;
         }
 
-        QSqlQuery link(m_db);
+        QSqlQuery link(threadConnection());
         link.prepare(QStringLiteral("INSERT OR IGNORE INTO media_tags (media_id, tag_id) VALUES (?, ?)"));
         link.addBindValue(textValue(mediaQuery.value(0).toString()));
         link.addBindValue(textValue(tag.id));
         link.exec();
     }
-    m_db.commit();
+    transactionDb.commit();
 
     cleanupOrphanTags();
 }
@@ -954,7 +1058,8 @@ void CatalogDatabase::removeMediaTagsFor(const QStringList &mediaIds)
         return;
     }
 
-    QSqlQuery query(m_db);
+    QSqlDatabase db = threadConnection();
+    QSqlQuery query(db);
     query.prepare(QStringLiteral("DELETE FROM media_tags WHERE media_id IN (%1)")
                       .arg(sqlInPlaceholders(mediaIds.size())));
     for (const QString &mediaId : mediaIds) {
@@ -1010,21 +1115,22 @@ void CatalogDatabase::normalizeTagNames()
         return;
     }
 
-    m_db.transaction();
+    QSqlDatabase transactionDb = threadConnection();
+    transactionDb.transaction();
     for (const auto &[duplicateId, survivorId] : redirects) {
-        QSqlQuery redirect(m_db);
+        QSqlQuery redirect(threadConnection());
         // OR IGNORE: связь могла уже существовать у выжившего тега.
         redirect.prepare(QStringLiteral("UPDATE OR IGNORE media_tags SET tag_id = ? WHERE tag_id = ?"));
         redirect.addBindValue(textValue(survivorId));
         redirect.addBindValue(textValue(duplicateId));
         redirect.exec();
 
-        QSqlQuery dropLinks(m_db);
+        QSqlQuery dropLinks(threadConnection());
         dropLinks.prepare(QStringLiteral("DELETE FROM media_tags WHERE tag_id = ?"));
         dropLinks.addBindValue(textValue(duplicateId));
         dropLinks.exec();
 
-        QSqlQuery dropTag(m_db);
+        QSqlQuery dropTag(threadConnection());
         dropTag.prepare(QStringLiteral("DELETE FROM tags WHERE id = ?"));
         dropTag.addBindValue(textValue(duplicateId));
         dropTag.exec();
@@ -1032,14 +1138,14 @@ void CatalogDatabase::normalizeTagNames()
 
     // Фиксируем объединённые lastUsedAt и нормализованные имена.
     for (auto it = byName.cbegin(); it != byName.cend(); ++it) {
-        QSqlQuery update(m_db);
+        QSqlQuery update(threadConnection());
         update.prepare(QStringLiteral("UPDATE tags SET name = ?, last_used_at = ? WHERE id = ?"));
         update.addBindValue(textValue(it->name));
         update.addBindValue(it->lastUsedAt);
         update.addBindValue(textValue(it->id));
         update.exec();
     }
-    m_db.commit();
+    transactionDb.commit();
 }
 
 } // namespace mc

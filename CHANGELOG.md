@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-10 — Give every thread its own SQLite connection
+- `QSqlDatabase` was shared between the main thread and the background scan thread, which is not allowed and caused intermittent segfaults inside SQLite when the scan prepared a statement; `CatalogDatabase` now hands out one lazily opened connection per thread via `QThreadStorage`, with WAL allowing concurrent reads and writes.
+- Added an explicit `MediaLibrary::shutdown()` (also called from the destructor) that disconnects worker objects, waits for scanning and metadata reads, stops the preview pool while the database is still alive, and discards already queued signals.
+- Verified with repeated test runs: 12 consecutive model runs and 6 core runs pass (53 and 107 checks), and the application still scans and generates previews end to end.
+
 ## 2026-10-10 — Deploy into a separate directory instead of the build tree
 - The `deploy` target now copies the app bundle into `<build>/deploy` before running `macdeployqt` or `windeployqt`, so the development build stays untouched; deploying in place made macOS load two sets of Qt binaries and the app failed to start with "Could not load the Qt platform plugin".
 - Added a `deploy-run` target that launches the deployed package (macOS, Linux), and CPack now packages files from the deploy directory.

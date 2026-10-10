@@ -47,6 +47,11 @@ public:
     explicit MediaLibrary(QObject *parent = nullptr);
     ~MediaLibrary() override;
 
+    /// Останавливает фоновые задачи и дожидается их завершения.
+    /// Вызывается автоматически при разрушении, но может быть вызван и явно —
+    /// например, тестами, чтобы не оставлять работающие потоки.
+    void shutdown();
+
     /// Открывает базу и, если каталоги уже добавлены, запускает сканирование.
     bool initialize(const QString &overrideDataDir = QString());
 
@@ -153,6 +158,7 @@ private:
     QFuture<void> m_scanFuture;
     FilterCondition m_filter;
     QSet<QString> m_pendingCaptureDates;
+    bool m_shutdown = false;
     bool m_scanQueued = false;
     bool m_scanning = false;
     int m_version = 0;
