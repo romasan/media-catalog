@@ -16,6 +16,19 @@ Rectangle {
     property int minContentHeight: 160
     property bool resizable: true
 
+    /// Закрытие окна попапа.
+    signal closed()
+
+    function close() {
+        visible = false;
+        closed();
+    }
+
+    focus: true
+
+    // Esc закрывает попап, как в версии 1.x.
+    Keys.onEscapePressed: root.close()
+
     /// Куда вернуть окно, если пользователь переместил его за пределы экрана.
     function clampToParent() {
         if (!parent)
@@ -65,18 +78,32 @@ Rectangle {
             font.bold: true
         }
 
-        Button {
+        // Кнопка закрытия: крестик, нарисованный вектором.
+        Item {
+            id: closeButton
             anchors.right: parent.right
             anchors.rightMargin: Theme.spacing / 2
             anchors.verticalCenter: parent.verticalCenter
             width: 26
             height: 26
-            flat: true
-            text: "✕"
-            onClicked: root.visible = false
+
+            CloseGlyph {
+                anchors.centerIn: parent
+                width: 12
+                height: 12
+                color: closeArea.containsMouse ? Theme.danger : Theme.textMuted
+            }
+
+            MouseArea {
+                id: closeArea
+                anchors.fill: parent
+                hoverEnabled: true
+                onClicked: root.close()
+            }
 
             ToolTip.text: "Закрыть"
-            ToolTip.visible: hovered
+            ToolTip.visible: closeArea.containsMouse
+            ToolTip.delay: 500
         }
 
         // Простое перетаскивание мышью — надёжнее обработчика жестов.
@@ -119,11 +146,24 @@ Rectangle {
         anchors.bottom: parent.bottom
         color: "transparent"
 
-        Text {
-            anchors.centerIn: parent
-            text: "◢"
-            color: Theme.textDim
-            font.pixelSize: 12
+        // Уголок изменения размера: две диагональные линии.
+        Canvas {
+            anchors.fill: parent
+            onPaint: draw()
+
+            function draw() {
+                const ctx = getContext("2d");
+                ctx.reset();
+                ctx.strokeStyle = Theme.textDim;
+                ctx.lineWidth = 1.5;
+                ctx.lineCap = "round";
+                for (const offset of [10, 14]) {
+                    ctx.beginPath();
+                    ctx.moveTo(width - offset, height - 2);
+                    ctx.lineTo(width - 2, height - offset);
+                    ctx.stroke();
+                }
+            }
         }
 
         MouseArea {

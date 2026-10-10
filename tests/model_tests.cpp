@@ -1,6 +1,8 @@
 // Тесты слоя моделей: путь «файлы на диске → сканирование → превью →
 // данные, которые получает QML».
 
+#include <cstdio>
+
 #include "app/MediaListModel.h"
 #include "app/TagListModel.h"
 #include "core/MediaLibrary.h"
@@ -27,6 +29,7 @@ int g_checks = 0;
 
 void check(bool condition, const QString &what)
 {
+    fflush(stdout);
     ++g_checks;
     if (!condition) {
         ++g_failures;
@@ -140,9 +143,55 @@ void testPathFormConsistency(MediaLibrary &library, const QString &photosRoot)
     checkEqual(library.mediaCount(), before,
                QStringLiteral("повторное сканирование не задублировало файлы"));
 
-    library.removeCatalog(library.catalogs().last().toMap()
-                              .value(QStringLiteral("id")).toString());
+    // Убираем только свой каталог: добавленный через ссылку.
+    for (const QVariant &value : library.catalogs()) {
+        const QVariantMap catalog = value.toMap();
+        if (catalog.value(QStringLiteral("path")).toString() == linkRoot) {
+            library.removeCatalog(catalog.value(QStringLiteral("id")).toString());
+        }
+    }
     QFile::remove(linkRoot);
+}
+
+
+/// Регрессия: диалоги Qt возвращают URL (`file:///…`), а не путь. Если передать
+/// URL в QFileInfo, он понимается как относительный путь и превращается в
+/// мусор вида «<рабочий каталог>/file:/…» — папка не находится и сканирование
+/// молча ничего не делает.
+void testCatalogFromUrl(MediaLibrary &library, const QString &photosRoot)
+{
+    // Берём отдельную подпапку, чтобы не пересекаться с уже добавленным
+    // каталогом: одинаковый путь приложение считает дубликатом.
+    const QString urlRoot = QDir(photosRoot).filePath(QStringLiteral("sub"));
+    check(QFileInfo(urlRoot).isDir(), QStringLiteral("подпапка для проверки URL существует"));
+
+    const QString url = QStringLiteral("file://") + urlRoot;
+    library.addCatalog(url);
+    check(waitForScan(library), QStringLiteral("сканирование после добавления по URL завершилось"));
+
+    // Ищем именно свой каталог.
+    QVariantMap entry;
+    for (const QVariant &value : library.catalogs()) {
+        const QVariantMap catalog = value.toMap();
+        if (catalog.value(QStringLiteral("path")).toString() == urlRoot) {
+            entry = catalog;
+        }
+    }
+
+    check(!entry.isEmpty(), QStringLiteral("каталог добавлен по URL"));
+    if (entry.isEmpty()) {
+        return;
+    }
+
+    const QString stored = entry.value(QStringLiteral("path")).toString();
+    checkEqual(stored, urlRoot, QStringLiteral("URL превращён в локальный путь"));
+    check(!stored.contains(QStringLiteral("file:")), QStringLiteral("в пути нет схемы file:"));
+
+    // И файлы должны найтись.
+    check(library.mediaCount() > 0, QStringLiteral("файлы найдены после добавления по URL"));
+
+    library.removeCatalog(entry.value(QStringLiteral("id")).toString());
+    check(library.hasCatalogs(), QStringLiteral("основной каталог не затронут"));
 }
 
 } // namespace
@@ -151,7 +200,6 @@ int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("MediaCatalogModelTests"));
-
     QTextStream(stdout) << "Тесты моделей Media Catalog\n\n";
 
     QTemporaryDir workDir;
@@ -295,11 +343,21 @@ int main(int argc, char *argv[])
     const QVariantList fileMetaTags = library.mediaMetaTags(firstId);
     checkEqual(fileMetaTags.size(), 3, QStringLiteral("у файла три метатега"));
 
+    // ==== Добавление каталога по URL из диалога (регрессия) ====
+    testCatalogFromUrl(library, workDir.path());
+
     // ==== Согласованность форм пути (регрессия) ====
     testPathFormConsistency(library, workDir.path());
 
     // ==== Удаление каталога ====
-    const QString catalogId = library.catalogs().first().toMap()
+    // Каталог основного дерева должен быть на месте: регрессионные проверки
+    // выше убирают только созданные ими каталоги.
+    const QVariantList remainingCatalogs = library.catalogs();
+    check(!remainingCatalogs.isEmpty(), QStringLiteral("каталог для удаления найден"));
+    if (remainingCatalogs.isEmpty()) {
+        return 1;
+    }
+    const QString catalogId = remainingCatalogs.constFirst().toMap()
                                   .value(QStringLiteral("id")).toString();
     library.removeCatalog(catalogId);
     checkEqual(library.mediaCount(), 0, QStringLiteral("удаление каталога очистило файлы"));
@@ -309,6 +367,6 @@ int main(int argc, char *argv[])
     // завершения, и отсутствие обращений к базе после разрушения.
     library.shutdown();
 
-    QTextStream(stdout) << "\nПроверок: " << g_checks << ", провалов: " << g_failures << '\n';
+    QTextStream(stdout) << "Проверок: " << g_checks << ", провалов: " << g_failures << '\n';
     return g_failures == 0 ? 0 : 1;
 }

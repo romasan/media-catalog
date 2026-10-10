@@ -287,7 +287,7 @@ QList<Catalog> CatalogDatabase::catalogs() const
 
 Catalog CatalogDatabase::addCatalog(const QString &path)
 {
-    const QString normalized = normalizedPath(path);
+    const QString normalized = normalizedPath(toLocalPath(path));
 
     QSqlDatabase db = threadConnection();
     QSqlQuery findQuery(db);

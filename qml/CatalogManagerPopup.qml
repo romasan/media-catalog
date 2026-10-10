@@ -8,10 +8,32 @@ Item {
     id: root
 
     visible: false
+    focus: true
+
+    signal closed()
 
     function open() {
         visible = true;
         window.centerInParent();
+        window.forceActiveFocus();
+    }
+
+    function close() {
+        visible = false;
+        closed();
+    }
+
+    Keys.onEscapePressed: root.close()
+
+    // Подложка: перехватывает клики по окну под попапом и закрывает его.
+    Rectangle {
+        anchors.fill: parent
+        color: "#4d000000"
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: root.close()
+        }
     }
 
     /// Статистика по каталогу: сколько фото и видео найдено.
@@ -31,6 +53,7 @@ Item {
         title: "Каталоги"
         minContentWidth: 360
         minContentHeight: 260
+        onClosed: root.close()
 
         Column {
             anchors.fill: parent
@@ -141,8 +164,11 @@ Item {
         FolderDialog {
             id: folderDialog
             title: "Выберите папку для сканирования"
-            currentFolder: "file://" + App.defaultCatalogDirectory
-            onAccepted: App.addCatalog(selectedFolder)
+            currentFolder: Qt.url(App.defaultCatalogDirectory)
+            // selectedFolder — это URL (file:///…), поэтому приводим его
+            // к локальному пути: иначе каталог не найдётся и сканирование
+            // ничего не сделает.
+            onAccepted: App.addCatalog(urlToLocalFile(selectedFolder))
         }
 
         Dialog {

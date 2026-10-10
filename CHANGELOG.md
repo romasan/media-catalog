@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-10 — Fix catalog scanning, popup closing and restore the 1.x interface
+- Adding a folder did nothing: Qt dialogs return a URL (`file:///…`) and it was passed straight into the path, so `QFileInfo` resolved it against the working directory (`…/file:/Users/…`), the folder was never found and the scan finished with zero files. Dialogs now convert the URL with `urlToLocalFile`, and `Paths::toLocalPath` accepts both forms as a safety net.
+- The burger button is back in the bottom-right corner (a 56 px circle) instead of the window header, and the filter moved from a full-width top bar to a compact panel in the bottom-left, matching the 1.x layout.
+- Popups now close: the close cross works, Esc closes them, clicking the dimmed backdrop closes them, and the backdrop also stops clicks from reaching the grid underneath.
+- Emoji are gone from the interface: the burger, close cross, play badge, resize corner and the photo/video counter now use vector icons drawn with `Canvas`, which look the same on every platform and follow the theme colour.
+- The filter panel matches the 1.x behaviour again: the "все / любой" toggle appears only with two or more tags, chips use the original colours and the counter shows photo and video counts for the current result.
+
 ## 2026-10-10 — Give every thread its own SQLite connection
 - `QSqlDatabase` was shared between the main thread and the background scan thread, which is not allowed and caused intermittent segfaults inside SQLite when the scan prepared a statement; `CatalogDatabase` now hands out one lazily opened connection per thread via `QThreadStorage`, with WAL allowing concurrent reads and writes.
 - Added an explicit `MediaLibrary::shutdown()` (also called from the destructor) that disconnects worker objects, waits for scanning and metadata reads, stops the preview pool while the database is still alive, and discards already queued signals.

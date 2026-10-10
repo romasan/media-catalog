@@ -194,7 +194,7 @@ Item {
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: !App.library.scanning
-                    text: "Добавьте папки с фото и видео через меню ☰"
+                    text: "Добавьте папки с фото и видео через меню в правом нижнем углу"
                     color: Theme.textMuted
                     font.family: Theme.fontFamily
                     font.pixelSize: Theme.fontSizeNormal

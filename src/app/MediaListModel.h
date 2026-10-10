@@ -25,6 +25,9 @@ class MediaListModel : public QAbstractListModel
     /// Идентификаторы выбранных файлов (для массового тегирования).
     Q_PROPERTY(QStringList selectedIds READ selectedIds WRITE setSelectedIds NOTIFY selectionChanged)
     Q_PROPERTY(int selectedCount READ selectedCount NOTIFY selectionChanged)
+    /// Сколько фото и видео в текущей выдаче — для счётчика в панели фильтра.
+    Q_PROPERTY(int photoCount READ photoCount NOTIFY countChanged)
+    Q_PROPERTY(int videoCount READ videoCount NOTIFY countChanged)
 
 public:
     enum Role {
@@ -54,6 +57,8 @@ public:
     QStringList selectedIds() const { return m_selectedIds; }
     void setSelectedIds(const QStringList &ids);
     int selectedCount() const { return m_selectedIds.size(); }
+    int photoCount() const { return m_photoCount; }
+    int videoCount() const { return m_videoCount; }
 
     Q_INVOKABLE QString idAt(int row) const;
     Q_INVOKABLE int rowForId(const QString &mediaId) const;
@@ -86,6 +91,8 @@ private:
     QHash<QString, int> m_rowById;
     QStringList m_selectedIds;
     QSet<QString> m_selectedSet;
+    int m_photoCount = 0;
+    int m_videoCount = 0;
 };
 
 } // namespace mc

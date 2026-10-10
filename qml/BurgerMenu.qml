@@ -3,46 +3,68 @@ import QtQuick.Controls
 import QtQuick.Dialogs
 import MediaCatalog
 
-// Круглая кнопка-меню: каталоги, теги, экспорт/импорт, повторное сканирование.
+// Круглая кнопка меню в правом нижнем углу — как в версии 1.x.
 Item {
     id: root
-    width: 40
-    height: 40
+
+    implicitWidth: 56
+    implicitHeight: 56
 
     signal openCatalogManager()
     signal openTagManager()
 
+    // Затемнение фона под открытым меню: клик по нему закрывает меню.
     Rectangle {
-        id: button
+        anchors.fill: parent
+        anchors.margins: -root.parent.width
+        visible: menu.opened
+        color: "#4d000000"
+        z: -1
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: menu.close()
+        }
+    }
+
+    Rectangle {
+        id: buttonCircle
         anchors.fill: parent
         radius: width / 2
-        color: hoverArea.containsMouse ? Theme.hover : Theme.surface
-        border.color: Theme.border
+        color: hoverArea.containsMouse ? "#4682b4" : Theme.accent
+        border.color: "#00000033"
 
-        Text {
+        BurgerGlyph {
             anchors.centerIn: parent
-            text: "☰"
-            color: Theme.text
-            font.pixelSize: 18
+            width: 24
+            height: 24
+            color: "#ffffff"
         }
 
         MouseArea {
             id: hoverArea
             anchors.fill: parent
             hoverEnabled: true
-            onClicked: menu.popup()
+            onClicked: menu.opened ? menu.close() : menu.open()
         }
+
+        ToolTip.text: "Меню"
+        ToolTip.visible: hoverArea.containsMouse
+        ToolTip.delay: 600
     }
 
     Menu {
         id: menu
+        // Раскрываемся вверх и влево: кнопка стоит в правом нижнем углу.
+        y: -height - 12
+        x: buttonCircle.width - menu.width
 
         MenuItem {
-            text: "Каталоги…"
+            text: "Управление каталогами"
             onTriggered: root.openCatalogManager()
         }
         MenuItem {
-            text: "Теги…"
+            text: "Управление тегами"
             onTriggered: root.openTagManager()
         }
         MenuSeparator {}
@@ -52,11 +74,11 @@ Item {
         }
         MenuSeparator {}
         MenuItem {
-            text: "Экспорт данных…"
+            text: "Экспорт"
             onTriggered: exportDialog.open()
         }
         MenuItem {
-            text: "Импорт данных…"
+            text: "Импорт"
             onTriggered: importDialog.open()
         }
     }
@@ -68,8 +90,10 @@ Item {
         defaultSuffix: "json"
         nameFilters: ["JSON (*.json)"]
         onAccepted: {
-            if (App.transferData(true, selectedFile))
-                App.notifyExportDirectory(selectedFile);
+            // selectedFile — URL, а не путь.
+            const path = urlToLocalFile(selectedFile);
+            if (App.transferData(true, path))
+                App.notifyExportDirectory(path);
         }
     }
 
@@ -78,6 +102,6 @@ Item {
         title: "Импорт данных"
         fileMode: FileDialog.OpenFile
         nameFilters: ["JSON (*.json)"]
-        onAccepted: App.transferData(false, selectedFile)
+        onAccepted: App.transferData(false, urlToLocalFile(selectedFile))
     }
 }

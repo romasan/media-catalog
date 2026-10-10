@@ -30,4 +30,14 @@ struct AppPaths {
 /// Пути по умолчанию. `overrideDataDir` (из `--data-dir`) имеет приоритет.
 AppPaths defaultPaths(const QString &overrideDataDir = QString());
 
+/// Приводит строку к локальному пути файловой системы.
+///
+/// Диалоги Qt (`FolderDialog`, `FileDialog`) возвращают URL вида
+/// `file:///Users/x/photos`. Если передать такой URL в `QFileInfo`, он будет
+/// понят как относительный путь и превратится в мусор вида
+/// `<рабочий каталог>/file:/Users/x/photos` — папка не найдётся, и
+/// сканирование молча пропустит каталог. Функция принимает и URL, и обычный
+/// путь.
+QString toLocalPath(const QString &pathOrUrl);
+
 } // namespace mc

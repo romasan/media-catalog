@@ -163,6 +163,16 @@ void MediaListModel::refresh()
 
 void MediaListModel::rebuildMaps()
 {
+    m_photoCount = 0;
+    m_videoCount = 0;
+    for (const MediaFile &media : std::as_const(m_media)) {
+        if (media.kind == MediaKind::Video) {
+            ++m_videoCount;
+        } else {
+            ++m_photoCount;
+        }
+    }
+
     m_items.clear();
     m_items.reserve(m_media.size());
     m_rowById.clear();

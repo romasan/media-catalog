@@ -165,6 +165,22 @@ void testPathHash()
                QStringLiteral("расширение приводится к нижнему регистру"));
 }
 
+void testLocalPathConversion()
+{
+    section(QStringLiteral("Преобразование URL в путь"));
+
+    // Диалоги Qt возвращают URL; QFileInfo понял бы его как относительный путь.
+    checkEqual(toLocalPath(QStringLiteral("file:///Users/x/photos")),
+               QStringLiteral("/Users/x/photos"), QStringLiteral("обычный file-URL"));
+    checkEqual(toLocalPath(QStringLiteral("file:///tmp/%D1%84%D0%BE%D1%82%D0%BE")),
+               QString::fromUtf8("/tmp/фото"), QStringLiteral("URL с процентным кодированием"));
+    checkEqual(toLocalPath(QStringLiteral("/Users/x/photos")),
+               QStringLiteral("/Users/x/photos"), QStringLiteral("обычный путь не меняется"));
+    checkEqual(toLocalPath(QStringLiteral("отчёт: 2024.jpg")),
+               QStringLiteral("отчёт: 2024.jpg"), QStringLiteral("двоеточие в имени не схема"));
+    checkEqual(toLocalPath(QString()), QString(), QStringLiteral("пустая строка"));
+}
+
 void testFormats()
 {
     section(QStringLiteral("Поддерживаемые форматы"));
@@ -521,6 +537,7 @@ int main(int argc, char *argv[])
     QTextStream(stdout) << "Тесты ядра Media Catalog\n\n";
 
     testPathHash();
+    testLocalPathConversion();
     testFormats();
     testMetaTags();
     testExifParsing();

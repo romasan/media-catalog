@@ -40,13 +40,23 @@ Item {
             visible: status === Image.Ready
         }
 
-        // Заглушка, пока превью не готово.
-        Text {
+        // Заглушка, пока превью не готово: значок типа файла.
+        Loader {
             anchors.centerIn: parent
             visible: preview.status !== Image.Ready
-            text: root.video ? "🎬" : "🖼️"
-            font.pixelSize: Math.max(20, Math.min(root.width, root.height) * 0.3)
-            opacity: 0.55
+            width: Math.max(20, Math.min(root.width, root.height) * 0.3)
+            height: width
+
+            sourceComponent: root.video ? videoGlyph : photoGlyph
+
+            Component {
+                id: videoGlyph
+                VideoGlyph { color: Theme.textDim }
+            }
+            Component {
+                id: photoGlyph
+                PhotoGlyph { color: Theme.textDim }
+            }
         }
 
         // Значок видео поверх превью.
@@ -60,11 +70,11 @@ Item {
             radius: 11
             color: "#99000000"
 
-            Text {
+            PlayGlyph {
                 anchors.centerIn: parent
-                text: "▶"
+                width: 10
+                height: 10
                 color: "#ffffff"
-                font.pixelSize: 11
             }
         }
 

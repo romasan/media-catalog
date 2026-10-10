@@ -117,6 +117,11 @@ qt_add_qml_module(mediacatalog
         qml/ToastContainer.qml
         qml/ThumbnailProgressBar.qml
         qml/DraggableResizable.qml
+        qml/PhotoGlyph.qml
+        qml/VideoGlyph.qml
+        qml/CloseGlyph.qml
+        qml/BurgerGlyph.qml
+        qml/PlayGlyph.qml
 )
 
 set_target_properties(mediacatalog PROPERTIES
@@ -277,5 +282,6 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Каталогизация фото и в
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "Media Catalog")
 
 include(CPack)
+
 
 

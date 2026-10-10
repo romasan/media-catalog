@@ -6,8 +6,6 @@ import MediaCatalog
 ApplicationWindow {
     id: window
 
-    // Ссылки на синглтоны проверяются через Library: если бы context property
-    // не пришла, обращение ниже уже дало бы ошибку загрузки.
     readonly property var mediaLibrary: Library
 
     title: qsTr("Media Catalog")
@@ -18,109 +16,85 @@ ApplicationWindow {
     minimumHeight: 480
     color: Theme.background
 
-    // ==== Шапка ====
-    header: Rectangle {
-        height: 48
-        color: Theme.background
+    Item {
+        id: content
+        anchors.fill: parent
 
-        BurgerMenu {
-            id: burger
+        // Полоса прогресса генерации превью — тонкая линия у верхнего края.
+        ThumbnailProgressBar {
+            id: progressBar
             anchors.left: parent.left
-            anchors.leftMargin: Theme.spacing * 1.5
-            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: parent.right
+            anchors.top: parent.top
+            active: mediaLibrary.generatingThumbnails
+            progress: mediaLibrary.thumbnailProgress
+        }
+
+        // Сетка превью.
+        MediaGrid {
+            id: grid
+            anchors.fill: parent
+            // Отступ снизу под панель фильтра и кнопку меню.
+            anchors.bottomMargin: App.hasSelection ? 118 : 84
+        }
+
+        // Панель фильтра — плашка в левом нижнем углу.
+        FilterBar {
+            id: filterBar
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            anchors.margins: 12
+            width: implicitWidth
+            height: implicitHeight
+        }
+
+        // Панель массового тегирования — над панелью фильтра.
+        BatchTagBar {
+            id: batchBar
+            anchors.left: filterBar.right
+            anchors.right: burgerButton.left
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: 12
+            anchors.leftMargin: 12
+            anchors.rightMargin: 12
+            height: App.hasSelection ? 46 : 0
+        }
+
+        // Круглая кнопка меню — правый нижний угол.
+        BurgerMenu {
+            id: burgerButton
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: 24
+            width: 56
+            height: 56
             onOpenCatalogManager: catalogManager.open()
             onOpenTagManager: tagManager.openForSelection()
         }
 
-        Text {
-            anchors.left: burger.right
-            anchors.leftMargin: Theme.spacing * 2
-            anchors.verticalCenter: parent.verticalCenter
-            text: "Media Catalog"
-            color: Theme.text
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSizeLarge
-            font.bold: true
+        ToastContainer {
+            id: toasts
+            anchors.fill: parent
         }
-
-        Text {
-            anchors.right: parent.right
-            anchors.rightMargin: Theme.spacing * 2
-            anchors.verticalCenter: parent.verticalCenter
-            text: {
-                if (mediaLibrary.scanning)
-                    return "Сканирование…";
-                if (mediaLibrary.generatingThumbnails)
-                    return "Превью: " + Math.round(mediaLibrary.thumbnailProgress * 100) + "%";
-                return "Фото: " + mediaLibrary.photoCount + "   Видео: " + mediaLibrary.videoCount;
-            }
-            color: Theme.textMuted
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.fontSizeSmall
-        }
-    }
-
-    // ==== Основная область ====
-    Column {
-        anchors.fill: parent
-        spacing: 0
-
-        FilterBar {
-            width: parent.width
-            height: implicitHeight
-        }
-
-        Item {
-            width: parent.width
-            height: parent.height - parent.spacing
-
-            MediaGrid {
-                id: grid
-                anchors.fill: parent
-                anchors.bottomMargin: App.hasSelection ? 46 : 0
-            }
-
-            BatchTagBar {
-                id: batchBar
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                height: App.hasSelection ? 46 : 0
-            }
-        }
-    }
-
-    // ==== Прогресс генерации превью ====
-    ThumbnailProgressBar {
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.topMargin: 48
-        active: mediaLibrary.generatingThumbnails
-        progress: mediaLibrary.thumbnailProgress
     }
 
     // ==== Попапы ====
     CatalogManagerPopup {
         id: catalogManager
         anchors.fill: parent
+        z: 200
     }
 
     TagManagerPopup {
         id: tagManager
         anchors.fill: parent
+        z: 200
     }
 
-    ToastContainer {
-        id: toasts
-        anchors.fill: parent
-    }
-
-    // ==== Реакция на события ядра ====
+    // ==== События ядра ====
     Connections {
         target: mediaLibrary
 
-        // Завершение сканирования: показываем, что изменилось.
         function onScanFinished(result) {
             const parts = [];
             if (result.addedFiles > 0)

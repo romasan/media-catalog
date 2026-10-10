@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QStandardPaths>
+#include <QUrl>
 
 namespace mc {
 
@@ -46,6 +47,23 @@ bool AppPaths::ensureDirectories() const
 {
     QDir dir;
     return dir.mkpath(dataDir) && dir.mkpath(thumbnailsDir);
+}
+
+QString toLocalPath(const QString &pathOrUrl)
+{
+    if (pathOrUrl.isEmpty()) {
+        return {};
+    }
+
+    // URL разбираем только при явной схеме: иначе двоеточие в имени файла
+    // (например, «отчёт: 2024.jpg») было бы принято за схему.
+    if (pathOrUrl.startsWith(QLatin1String("file:"), Qt::CaseInsensitive)) {
+        const QString local = QUrl(pathOrUrl).toLocalFile();
+        if (!local.isEmpty()) {
+            return local;
+        }
+    }
+    return pathOrUrl;
 }
 
 AppPaths defaultPaths(const QString &overrideDataDir)
