@@ -27,8 +27,17 @@ open cmake-build/mediacatalog.app
 
 ```bash
 cmake --build cmake-build --target deploy   # macdeployqt + повторная подпись
+cmake --build cmake-build --target deploy-run  # запустить готовый пакет
 cd cmake-build && cpack -G DragNDrop        # получится MediaCatalog-2.0.0-Darwin.dmg
 ```
+
+> **Важно:** `deploy` складывает пакет в `<каталог сборки>/deploy/` и **не меняет**
+> сборку для разработки. `macdeployqt` правит пакет по месту, подменяя пути к
+> библиотекам на внутренние, поэтому развёртывание прямо в дереве сборки ломает
+> обычный запуск: на машине с установленным Qt загрузятся две копии библиотек
+> (из пакета и из системы), и приложение не стартует с ошибкой
+> «Could not load the Qt platform plugin». Если это всё же произошло, удалите
+> каталог сборки и пересоберите его: `rm -rf cmake-build`.
 
 Подпись по умолчанию — ad-hoc (достаточно для запуска на своей машине). Для
 распространения укажите сертификат:
@@ -58,7 +67,7 @@ cmake-build\mediacatalog.exe
 3. Пакет с библиотеками Qt и установщик NSIS:
 
 ```bat
-cmake --build cmake-build --target deploy   :: windeployqt
+cmake --build cmake-build --target deploy   :: windeployqt в cmake-build\deploy
 cd cmake-build
 cpack -G NSIS                               :: MediaCatalog-2.0.0-win64.exe
 ```
@@ -92,6 +101,10 @@ cd cmake-build
 cpack -G TGZ     # архив с бинарником
 cpack -G DEB     # пакет Debian/Ubuntu
 ```
+
+Готовый к запуску каталог складывается в `cmake-build/deploy/` целевой сборкой
+`deploy` (на Linux Qt берётся из системы), запустить его можно через
+`cmake --build cmake-build --target deploy-run`.
 
 Linux-сборка использует системные библиотеки Qt, поэтому копировать их в пакет не
 нужно. Для самодостаточного варианта можно собрать AppImage утилитой
@@ -127,3 +140,4 @@ ctest --output-on-failure
 | Превью не генерируются | Не найден `ffmpeg`: установите его или задайте `MEDIACATALOG_FFMPEG` |
 | Видео не воспроизводится | Не установлен модуль Qt Multimedia или его системный бэкенд |
 | `ERROR: Cannot resolve rpath` при `macdeployqt` | Не установлен какой-то модуль Qt (например, `qtsvg`): установите и пересоберите |
+| `Could not load the Qt platform plugin "cocoa"`, в логе «loading two sets of Qt binaries» | Пакет развёрнут прямо в дереве сборки: собирайте через цель `deploy` (она кладёт пакет в `<build>/deploy`) либо удалите и пересоберите каталог сборки |

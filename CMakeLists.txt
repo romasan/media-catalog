@@ -159,31 +159,31 @@ enable_testing()
 add_test(NAME core COMMAND mc_core_tests)
 add_test(NAME models COMMAND mc_model_tests)
 
-# ==== Установка ====
 include(GNUInstallDirs)
-install(TARGETS mediacatalog
-    BUNDLE  DESTINATION .
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
-)
 
 # ==== Упаковка ====
 # Приложение зависит от библиотек Qt, поэтому перед упаковкой их нужно
 # положить рядом: на macOS это macdeployqt, на Windows — windeployqt.
 # Инструменты поставляются вместе с Qt и лежат в bin каталога установки Qt.
+#
+# Развёртывание идёт в ОТДЕЛЬНЫЙ каталог (<build>/deploy). Это принципиально:
+# macdeployqt и windeployqt правят пакет по месту, подменяя пути к библиотекам
+# на внутренние. Если развернуть пакет прямо в дереве сборки, при запуске на
+# машине с установленным Qt загрузятся две копии библиотек (из пакета и из
+# системы), и приложение не стартует. Поэтому сборка для разработки остаётся
+# нетронутой, а пакет лежит отдельно.
+
+set(DEPLOY_DIR "${CMAKE_BINARY_DIR}/deploy")
 
 # Поиск каталога с инструментами развёртывания.
 get_target_property(_qt_qmake Qt6::qmake IMPORTED_LOCATION)
 get_filename_component(_qt_bin_dir "${_qt_qmake}" DIRECTORY)
-get_target_property(_qt_qml_import_dir Qt6::Qml QT_QML_IMPORT_PATH)
 
 if(APPLE)
     find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${_qt_bin_dir}")
 
-    # Собирает самодостаточный .app: копирует Qt-фреймворки и плагины внутрь
-    # пакета, чтобы приложение запускалось на машине без Homebrew.
-    # Переписанные библиотеки теряют исходную подпись, поэтому пакет
-    # подписывается заново. Подпись ad-hoc (без сертификата) достаточна для
-    # запуска на этой машине; для распространения задайте
+    # Подпись ad-hoc (без сертификата) достаточна для запуска на этой машине;
+    # для распространения задайте
     # -DMACOS_SIGN_IDENTITY="Developer ID Application: ...".
     set(MACOS_SIGN_IDENTITY "-" CACHE STRING "Идентификатор подписи macOS (- = ad-hoc)")
 
@@ -191,13 +191,27 @@ if(APPLE)
     # QML-модули (QtQuick.Controls и его стили), и приложение не находит их
     # на машине без установленного Qt.
     add_custom_target(deploy
-        COMMAND "${MACDEPLOYQT_EXECUTABLE}" "$<TARGET_BUNDLE_DIR:mediacatalog>"
+        COMMAND "${CMAKE_COMMAND}" -E rm -rf "${DEPLOY_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${DEPLOY_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E copy_directory
+                "$<TARGET_BUNDLE_DIR:mediacatalog>" "${DEPLOY_DIR}/mediacatalog.app"
+        COMMAND "${MACDEPLOYQT_EXECUTABLE}" "${DEPLOY_DIR}/mediacatalog.app"
                 -always-overwrite
-                -qmldir="${CMAKE_CURRENT_SOURCE_DIR}/qml"
+                -qmldir=${CMAKE_CURRENT_SOURCE_DIR}/qml
         COMMAND /usr/bin/codesign --force --deep --sign "${MACOS_SIGN_IDENTITY}"
-                "$<TARGET_BUNDLE_DIR:mediacatalog>"
-        COMMENT "Подготовка пакета .app (macdeployqt и повторная подпись)"
+                "${DEPLOY_DIR}/mediacatalog.app"
+        COMMENT "Пакет собран в ${DEPLOY_DIR}/mediacatalog.app (сборка для разработки не изменена)"
         DEPENDS mediacatalog
+        USES_TERMINAL
+        VERBATIM
+    )
+
+    # Запуск уже развёрнутого пакета — так проверяется именно то, что получит
+    # пользователь.
+    add_custom_target(deploy-run
+        COMMAND /usr/bin/open "${DEPLOY_DIR}/mediacatalog.app"
+        DEPENDS deploy
+        COMMENT "Запуск развёрнутого пакета"
         USES_TERMINAL
     )
 
@@ -207,10 +221,16 @@ elseif(WIN32)
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_qt_bin_dir}")
 
     add_custom_target(deploy
-        COMMAND "${WINDEPLOYQT_EXECUTABLE}" "$<TARGET_FILE:mediacatalog>"
-        COMMENT "Подготовка каталога сборки (windeployqt)"
+        COMMAND "${CMAKE_COMMAND}" -E rm -rf "${DEPLOY_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${DEPLOY_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E copy "$<TARGET_FILE:mediacatalog>"
+                "${DEPLOY_DIR}/mediacatalog.exe"
+        COMMAND "${WINDEPLOYQT_EXECUTABLE}" --release
+                "${DEPLOY_DIR}/mediacatalog.exe"
+        COMMENT "Пакет собран в ${DEPLOY_DIR}"
         DEPENDS mediacatalog
         USES_TERMINAL
+        VERBATIM
     )
 
     set(CPACK_GENERATOR "NSIS")
@@ -219,15 +239,35 @@ elseif(WIN32)
     set(CPACK_NSIS_MODIFY_PATH OFF)
 else()
     # На Linux Qt-библиотеки обычно приходят из пакетов дистрибутива,
-    # поэтому достаточно архива с бинарником.
+    # поэтому достаточно скопировать бинарник.
     add_custom_target(deploy
-        COMMAND "${CMAKE_COMMAND}" -E echo "Отдельное развёртывание Qt не требуется"
+        COMMAND "${CMAKE_COMMAND}" -E rm -rf "${DEPLOY_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory "${DEPLOY_DIR}"
+        COMMAND "${CMAKE_COMMAND}" -E copy "$<TARGET_FILE:mediacatalog>" "${DEPLOY_DIR}/"
+        COMMENT "Пакет собран в ${DEPLOY_DIR} (Qt берётся из системы)"
         DEPENDS mediacatalog
+        USES_TERMINAL
+        VERBATIM
+    )
+
+    add_custom_target(deploy-run
+        COMMAND "${DEPLOY_DIR}/mediacatalog"
+        DEPENDS deploy
         USES_TERMINAL
     )
 
     set(CPACK_GENERATOR "TGZ;DEB")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "libqt6core6, libqt6gui6, libqt6qml6, libqt6quick6, libqt6quickcontrols2-6, libqt6sql6-sqlite, libqt6multimedia6")
+endif()
+
+# Упаковщик берёт файлы из каталога развёртывания, а не из дерева сборки.
+if(APPLE)
+    install(DIRECTORY "${DEPLOY_DIR}/mediacatalog.app"
+            DESTINATION .
+            USE_SOURCE_PERMISSIONS)
+else()
+    install(PROGRAMS "${DEPLOY_DIR}/mediacatalog${CMAKE_EXECUTABLE_SUFFIX}"
+            DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif()
 
 set(CPACK_PACKAGE_NAME "MediaCatalog")

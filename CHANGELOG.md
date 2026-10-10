@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-10 — Deploy into a separate directory instead of the build tree
+- The `deploy` target now copies the app bundle into `<build>/deploy` before running `macdeployqt` or `windeployqt`, so the development build stays untouched; deploying in place made macOS load two sets of Qt binaries and the app failed to start with "Could not load the Qt platform plugin".
+- Added a `deploy-run` target that launches the deployed package (macOS, Linux), and CPack now packages files from the deploy directory.
+- `docs/BUILD.md` documents the new layout and the duplicate-Qt symptom with its fix.
+
 ## 2026-10-10 — Keep the data directory one level deep
 - The default data directory is now built from the OS generic data location plus the application name instead of `QStandardPaths::AppDataLocation`, which also appends the organization name and produced a nested path like `…/Application Support/MediaCatalog/MediaCatalog`.
 
