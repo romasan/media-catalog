@@ -39,6 +39,10 @@ class AppController : public QObject
     Q_PROPERTY(QVariantList filterTags READ filterTags NOTIFY filterTagsChanged)
     /// Режим фильтра: AND («все») или OR («любой»).
     Q_PROPERTY(QString filterMode READ filterMode NOTIFY filterTagsChanged)
+    /// Список каталогов с путём, именем и числом файлов. Отдельное свойство с
+    /// сигналом: моделью Repeater/ListView не может быть вызов функции, иначе
+    /// список не обновляется после добавления каталога.
+    Q_PROPERTY(QVariantList catalogs READ catalogs NOTIFY catalogsChanged)
 
 public:
     explicit AppController(MediaLibrary *library, QObject *parent = nullptr);
@@ -56,6 +60,7 @@ public:
     QString applicationVersion() const;
     int tagRevision() const { return m_tagRevision; }
     QVariantList filterTags() const;
+    QVariantList catalogs() const;
     QString filterMode() const;
 
     Q_INVOKABLE void addCatalog(const QString &path);
@@ -79,6 +84,7 @@ public:
 signals:
     void tagRevisionChanged();
     void filterTagsChanged();
+    void catalogsChanged();
     void selectionChanged();
     void anyCatalogChanged();
     void lastExportDirectoryChanged();

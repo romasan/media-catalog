@@ -20,16 +20,6 @@ PopupFrame {
         App.addCatalog(App.toLocalPath(url));
     }
 
-    /// Статистика по каталогу: сколько фото и видео найдено.
-    function statsFor(catalogId) {
-        const stats = Library.catalogStats();
-        for (let i = 0; i < stats.length; ++i) {
-            if (stats[i].catalogId === catalogId)
-                return stats[i];
-        }
-        return { "photoCount": 0, "videoCount": 0 };
-    }
-
     Column {
         anchors.fill: parent
         spacing: Theme.spacing
@@ -65,7 +55,7 @@ PopupFrame {
             width: parent.width
             height: parent.height - y - Theme.spacing
             clip: true
-            model: Library.catalogs()
+            model: App.catalogs
 
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
@@ -76,7 +66,7 @@ PopupFrame {
                 height: 52
                 color: removeMouse.containsMouse ? Theme.hover : "transparent"
 
-                readonly property var stats: root.statsFor(modelData.id)
+                readonly property var stats: modelData
 
                 Column {
                     anchors.left: parent.left
@@ -123,7 +113,7 @@ PopupFrame {
         }
 
         Text {
-            visible: Library.catalogs().length === 0
+            visible: App.catalogs.length === 0
             width: parent.width
             text: "Каталоги не добавлены"
             color: Theme.textMuted

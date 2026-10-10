@@ -6,6 +6,7 @@ import MediaCatalog
 // Круглая кнопка меню в правом нижнем углу — как в версии 1.x.
 Item {
     id: root
+    objectName: "burgerMenu"
 
     implicitWidth: 56
     implicitHeight: 56
@@ -13,19 +14,19 @@ Item {
     signal openCatalogManager()
     signal openTagManager()
 
-    // Затемнение фона под открытым меню: клик по нему закрывает меню.
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: -root.parent.width
-        visible: menu.opened
-        color: "#4d000000"
-        z: -1
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: menu.close()
-        }
+    /// Открыть меню кнопки (используется кнопкой и проверками).
+    function openMenu() {
+        menu.open();
     }
+
+    function closeMenu() {
+        menu.close();
+    }
+
+    function isMenuOpen() {
+        return menu.opened;
+    }
+
 
     Rectangle {
         id: buttonCircle
@@ -43,6 +44,7 @@ Item {
 
         MouseArea {
             id: hoverArea
+            objectName: "burgerButtonArea"
             anchors.fill: parent
             hoverEnabled: true
             onClicked: menu.opened ? menu.close() : menu.open()
@@ -63,25 +65,50 @@ Item {
 
         MenuItem {
             text: "Управление каталогами"
-            onTriggered: root.openCatalogManager()
+            onTriggered: {
+                // Закрываем меню явно: иначе оно остаётся модальным и
+                // перехватывает клики до перезапуска приложения.
+                menu.close();
+                root.openCatalogManager()
+            }
         }
         MenuItem {
             text: "Управление тегами"
-            onTriggered: root.openTagManager()
+            onTriggered: {
+                // Закрываем меню явно: иначе оно остаётся модальным и
+                // перехватывает клики до перезапуска приложения.
+                menu.close();
+                root.openTagManager()
+            }
         }
         MenuSeparator {}
         MenuItem {
             text: "Сканировать заново"
-            onTriggered: Library.requestInitialScan()
+            onTriggered: {
+                // Закрываем меню явно: иначе оно остаётся модальным и
+                // перехватывает клики до перезапуска приложения.
+                menu.close();
+                Library.requestInitialScan()
+            }
         }
         MenuSeparator {}
         MenuItem {
             text: "Экспорт"
-            onTriggered: exportDialog.open()
+            onTriggered: {
+                // Закрываем меню явно: иначе оно остаётся модальным и
+                // перехватывает клики до перезапуска приложения.
+                menu.close();
+                exportDialog.open()
+            }
         }
         MenuItem {
             text: "Импорт"
-            onTriggered: importDialog.open()
+            onTriggered: {
+                // Закрываем меню явно: иначе оно остаётся модальным и
+                // перехватывает клики до перезапуска приложения.
+                menu.close();
+                importDialog.open()
+            }
         }
     }
 

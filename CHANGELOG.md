@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-10 — Refresh the catalog list and keep the menu working
+- A newly added catalog did not appear in the catalog manager until restart: the list model was a function call, which QML never re-evaluates. `AppController` now exposes `catalogs` with a change signal, carrying each catalog's path, name and photo/video counts, and the popup binds to it.
+- After working with a popup the menu button stopped responding until restart. The menu now closes itself explicitly before running the item action, so the popup's modal overlay is always released, and the hand-made full-window backdrop was removed since `Menu` already dims and blocks the interface.
+- Verified by driving the real path: clicking the menu button and the first menu item twice opens the popup both times, and a catalog added while the popup is open shows up in the list at once.
+
 ## 2026-10-10 — Fix adding a catalog from the catalog manager
 - Adding a folder did nothing in the catalog manager popup: the handler converted the dialog URL with `urlToLocalFile`, which does not exist in QML, so the call failed with a ReferenceError before reaching the library. A regression test now drives the same path the dialog uses.
 - The conversion moved into the core as `AppController::toLocalPath`, and export/import use it too — they had the same broken call, so they failed in the same way.

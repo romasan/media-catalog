@@ -29,6 +29,7 @@ AppController::AppController(MediaLibrary *library, QObject *parent)
         ++m_tagRevision;
         emit tagRevisionChanged();
         emit filterTagsChanged();
+        emit catalogsChanged();
 
         const bool hasCatalog = m_library->hasCatalogs();
         if (hasCatalog != m_anyCatalog) {
@@ -58,6 +59,28 @@ bool AppController::anyCatalog() const
 QString AppController::defaultCatalogDirectory() const
 {
     return m_library->defaultCatalogDirectory();
+}
+
+QVariantList AppController::catalogs() const
+{
+    QVariantList result;
+    for (const QVariant &value : m_library->catalogs()) {
+        QVariantMap entry = value.toMap();
+        const QString catalogId = entry.value(QStringLiteral("id")).toString();
+        int photos = 0;
+        int videos = 0;
+        for (const QVariant &statsValue : m_library->catalogStats()) {
+            const QVariantMap stats = statsValue.toMap();
+            if (stats.value(QStringLiteral("catalogId")).toString() == catalogId) {
+                photos = stats.value(QStringLiteral("photoCount")).toInt();
+                videos = stats.value(QStringLiteral("videoCount")).toInt();
+            }
+        }
+        entry.insert(QStringLiteral("photoCount"), photos);
+        entry.insert(QStringLiteral("videoCount"), videos);
+        result.append(entry);
+    }
+    return result;
 }
 
 QVariantList AppController::filterTags() const
