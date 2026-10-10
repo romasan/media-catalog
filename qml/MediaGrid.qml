@@ -13,6 +13,9 @@ Item {
     /// Карточка, выбранная последней (Ctrl/Cmd+клик) — якорь для Shift+клика.
     property string anchorId: ""
 
+    /// Запрос на открытие полноэкранного просмотра.
+    signal openRequested(int index)
+
     /// Просит сетку перечитать превью. Превью приходят потоком, поэтому
     /// обновление вызывается с задержкой, а не на каждый файл.
     function update() {
@@ -119,7 +122,7 @@ Item {
                     }
                     // Обычный клик — открываем полноэкранный просмотр.
                     App.mediaModel.clearSelection();
-                    fullscreenLoader.openAt(index);
+                    root.openRequested(index);
                 }
 
                 /// Пересчитывает диапазон дат по карточкам в области просмотра.
@@ -200,24 +203,6 @@ Item {
                     font.pixelSize: Theme.fontSizeNormal
                 }
             }
-        }
-    }
-
-    Loader {
-        id: fullscreenLoader
-
-        property int startIndex: 0
-
-        function openAt(index) {
-            startIndex = index;
-            active = true;
-        }
-
-        active: false
-        asynchronous: true
-        sourceComponent: FullscreenViewer {
-            startIndex: fullscreenLoader.startIndex
-            onClosed: fullscreenLoader.active = false
         }
     }
 }

@@ -24,11 +24,6 @@ Rectangle {
         closed();
     }
 
-    focus: true
-
-    // Esc закрывает попап, как в версии 1.x.
-    Keys.onEscapePressed: root.close()
-
     /// Куда вернуть окно, если пользователь переместил его за пределы экрана.
     function clampToParent() {
         if (!parent)
@@ -78,9 +73,30 @@ Rectangle {
             font.bold: true
         }
 
+        // Простое перетаскивание мышью — надёжнее обработчика жестов.
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton
+            cursorShape: Qt.OpenHandCursor
+            property real pressX: 0
+            property real pressY: 0
+
+            onPressed: function (mouse) {
+                pressX = mouse.x;
+                pressY = mouse.y;
+            }
+            onPositionChanged: function (mouse) {
+                if (!pressed)
+                    return;
+                root.x += mouse.x - pressX;
+                root.y += mouse.y - pressY;
+                root.clampToParent();
+            }
+        }
         // Кнопка закрытия: крестик, нарисованный вектором.
         Item {
             id: closeButton
+            objectName: "closeButton"
             anchors.right: parent.right
             anchors.rightMargin: Theme.spacing / 2
             anchors.verticalCenter: parent.verticalCenter
@@ -106,26 +122,6 @@ Rectangle {
             ToolTip.delay: 500
         }
 
-        // Простое перетаскивание мышью — надёжнее обработчика жестов.
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton
-            cursorShape: Qt.OpenHandCursor
-            property real pressX: 0
-            property real pressY: 0
-
-            onPressed: function (mouse) {
-                pressX = mouse.x;
-                pressY = mouse.y;
-            }
-            onPositionChanged: function (mouse) {
-                if (!pressed)
-                    return;
-                root.x += mouse.x - pressX;
-                root.y += mouse.y - pressY;
-                root.clampToParent();
-            }
-        }
     }
 
     Item {

@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
         QStringLiteral("Добавить каталог и сразу запустить сканирование"),
         QStringLiteral("путь"));
     parser.addOption(addCatalogOption);
+
     parser.process(app);
 
     mc::MediaLibrary library;

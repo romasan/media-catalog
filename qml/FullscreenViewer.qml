@@ -31,12 +31,14 @@ Item {
 
     function open() {
         currentIndex = startIndex;
+        visible = true;
         forceActiveFocus();
         loadCaptureDate();
     }
 
     function close() {
         mediaPlayer.stop();
+        visible = false;
         closed();
     }
 
@@ -99,6 +101,7 @@ Item {
         anchors.margins: 48
         visible: root.isVideo
         fillMode: VideoOutput.PreserveAspectFit
+        z: 1
     }
 
     MediaPlayer {
@@ -299,6 +302,4 @@ Item {
             break;
         }
     }
-
-    Component.onCompleted: visible = true
 }

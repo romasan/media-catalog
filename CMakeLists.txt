@@ -117,6 +117,7 @@ qt_add_qml_module(mediacatalog
         qml/ToastContainer.qml
         qml/ThumbnailProgressBar.qml
         qml/DraggableResizable.qml
+        qml/PopupFrame.qml
         qml/PhotoGlyph.qml
         qml/VideoGlyph.qml
         qml/CloseGlyph.qml

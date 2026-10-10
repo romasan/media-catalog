@@ -85,10 +85,21 @@ Item {
             acceptedButtons: Qt.LeftButton | Qt.RightButton
 
             onClicked: function (mouse) {
-                if (mouse.button === Qt.RightButton)
-                    root.rightClicked(mouse);
-                else
-                    root.clicked(mouse);
+                if (mouse.button === Qt.RightButton) {
+                    // На macOS Ctrl+клик приходит как правый клик, но означает
+                    // «добавить к выделению». Обычный правый клик ничего не
+                    // делает — в версии 1.x меню было только в просмотре.
+                    if (mouse.modifiers & Qt.ControlModifier
+                            || mouse.modifiers & Qt.MetaModifier) {
+                        root.clicked(mouse);
+                    } else {
+                        root.rightClicked(mouse);
+                    }
+                    return;
+                }
+
+                // Ctrl/Cmd+клик и Shift+клик всегда означают работу с выделением.
+                root.clicked(mouse);
             }
         }
     }

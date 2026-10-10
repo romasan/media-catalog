@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-10 — Restore the 1.x window layout and fix the viewer
+- The window no longer has a header or footer: the grid fills the whole window and the controls (filter panel, menu button, batch tag bar, progress bar) float above it, so cards are visible across the entire area, as in version 1.x.
+- Opening a file did nothing: the viewer loader never called `open()` on the created item, so the viewer stayed hidden — video audio played while no frame was visible. The loader now opens the viewer, the viewer covers the window (including the controls), and `VideoOutput` is layered above the photo image.
+- Popups could not be closed: the title drag area was declared after the close cross and covered it, so clicks never reached the button, and the popup root lost focus so `Esc` did nothing. Popups now share `PopupFrame` (backdrop, draggable window, three ways to close), the cross sits above the drag area, and `Esc` is handled at window level.
+- macOS Ctrl+click on a card now adds it to the selection instead of being treated as an empty right click.
+
 ## 2026-10-10 — Fix the fullscreen viewer reading the model row
 - The viewer asked the model for `get(index)`, which did not exist, so opening a file failed with a QML type error. `MediaListModel::get()` now returns the row as a map keyed by role names (`mediaId`, `fileUrl`, `isVideo`, `sizeText`, …), and a test asserts those keys and the out-of-range behaviour.
 

@@ -3,6 +3,11 @@ import QtQuick.Controls
 import MediaCatalog
 
 // Главное окно приложения.
+//
+// Компоновка повторяет версию 1.x: сетка превью занимает всё окно, а элементы
+// управления лежат поверх неё (панель фильтра в левом нижнем углу, круглая
+// кнопка меню в правом нижнем углу, полоса прогресса у верхнего края). Ни
+// «шапки», ни «футера» у окна нет, поэтому карточки видны по всей области.
 ApplicationWindow {
     id: window
 
@@ -19,6 +24,29 @@ ApplicationWindow {
     Item {
         id: rootItem
         anchors.fill: parent
+        focus: true
+
+        // Esc закрывает просмотр или попап на уровне окна: фокус в этот момент
+        // может быть у любого элемента, поэтому обработчик на самом попапе
+        // срабатывает не всегда.
+        Keys.onEscapePressed: {
+            if (viewerLoader.active) {
+                viewerLoader.item.close();
+            } else if (catalogManager.visible) {
+                catalogManager.close();
+            } else if (tagManager.visible) {
+                tagManager.close();
+            }
+        }
+
+        // ==== Сетка превью: вся область окна ====
+        MediaGrid {
+            id: grid
+            anchors.fill: parent
+            onOpenRequested: function (index) { viewerLoader.openAt(index); }
+        }
+
+        // ==== Элементы управления поверх сетки ====
 
         // Полоса прогресса генерации превью — тонкая линия у верхнего края.
         ThumbnailProgressBar {
@@ -26,16 +54,9 @@ ApplicationWindow {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
+            z: 10
             active: mediaLibrary.generatingThumbnails
             progress: mediaLibrary.thumbnailProgress
-        }
-
-        // Сетка превью.
-        MediaGrid {
-            id: grid
-            anchors.fill: parent
-            // Отступ снизу под панель фильтра и кнопку меню.
-            anchors.bottomMargin: App.hasSelection ? 118 : 84
         }
 
         // Панель фильтра — плашка в левом нижнем углу.
@@ -44,6 +65,7 @@ ApplicationWindow {
             anchors.left: parent.left
             anchors.bottom: parent.bottom
             anchors.margins: 12
+            z: 10
             width: implicitWidth
             height: implicitHeight
         }
@@ -57,6 +79,7 @@ ApplicationWindow {
             anchors.bottomMargin: 12
             anchors.leftMargin: 12
             anchors.rightMargin: 12
+            z: 10
             height: App.hasSelection ? 46 : 0
             onTagManagerRequested: tagManager.openForSelection()
         }
@@ -67,36 +90,62 @@ ApplicationWindow {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.margins: 24
+            z: 10
             width: 56
             height: 56
             onOpenCatalogManager: catalogManager.open()
             onOpenTagManager: tagManager.openForSelection()
         }
 
+        // Уведомления — поверх панелей, но под попапами и просмотром.
         ToastContainer {
             id: toasts
             anchors.fill: parent
+            z: 20
         }
 
         // Попапы: перекрывают окно, закрываются крестиком, Esc и кликом по фону.
         CatalogManagerPopup {
             id: catalogManager
-            objectName: "catalogManager"
             anchors.fill: parent
             z: 200
         }
 
         TagManagerPopup {
             id: tagManager
-            objectName: "tagManager"
             anchors.fill: parent
             z: 200
         }
-    }
 
-    // ==== Попапы ====
-    // Живут внутри корневого Item: у ApplicationWindow может быть только один
-    // визуальный ребёнок, иначе окно не раскладывает содержимое.
+        // Полноэкранный просмотр: живёт в окне, а не в сетке, чтобы перекрывать
+        // и панели управления.
+        Loader {
+            id: viewerLoader
+            objectName: "viewerLoader"
+            anchors.fill: parent
+            z: 300
+            active: false
+            asynchronous: false
+
+            property int startIndex: 0
+
+            function openAt(index) {
+                startIndex = index;
+                // Пересоздаём элемент: так просмотр всегда начинается заново,
+                // с нужного файла и с чистым плеером.
+                active = false;
+                active = true;
+            }
+
+            sourceComponent: FullscreenViewer {
+                startIndex: viewerLoader.startIndex
+                onClosed: viewerLoader.active = false
+            }
+
+            // Открываем просмотр сразу после создания элемента.
+            onLoaded: item.open()
+        }
+    }
 
     // ==== События ядра ====
     Connections {

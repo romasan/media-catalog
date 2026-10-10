@@ -8,7 +8,7 @@ import MediaCatalog
 //   - обычный: все теги с числом применений, создание и удаление, применение
 //     к открытому файлу;
 //   - multiSelectMode: выбранный тег применяется ко всем выделенным файлам.
-Item {
+PopupFrame {
     id: root
 
     /// Идентификатор медиафайла для однофайлового режима.
@@ -20,10 +20,11 @@ Item {
     /// Тег, выбранный в списке.
     property string selectedTagId: ""
 
-    visible: false
-    focus: true
+    objectName: "tagManager"
 
-    signal closed()
+    title: multiSelectMode ? "Тег для " + App.selectedCount + " файлов" : "Менеджер тегов"
+    frameWidth: 420
+    frameHeight: 480
 
     /// Общая точка входа: открыть менеджер тегов для выделенных файлов.
     function open() {
@@ -34,40 +35,18 @@ Item {
         multiSelectMode = false;
         mediaId = mediaIdValue;
         appliedIds = mediaId.length > 0 ? Library.mediaUserTagIds(mediaId) : [];
-        show();
+        selectedTagId = "";
+        baseOpen();
+        searchField.forceActiveFocus();
     }
 
     function openForSelection() {
         multiSelectMode = true;
         mediaId = "";
         appliedIds = [];
-        show();
-    }
-
-    function show() {
         selectedTagId = "";
-        visible = true;
-        window.centerInParent();
-        window.forceActiveFocus();
+        baseOpen();
         searchField.forceActiveFocus();
-    }
-
-    function close() {
-        visible = false;
-        closed();
-    }
-
-    Keys.onEscapePressed: root.close()
-
-    // Подложка: перехватывает клики по окну под попапом и закрывает его.
-    Rectangle {
-        anchors.fill: parent
-        color: "#4d000000"
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: root.close()
-        }
     }
 
     function isApplied(tagId) {
@@ -102,171 +81,159 @@ Item {
         appliedIds = Library.mediaUserTagIds(mediaId);
     }
 
-    DraggableResizable {
-        id: window
-        width: 420
-        height: 480
-        title: root.multiSelectMode
-               ? "Тег для " + App.selectedCount + " файлов"
-               : "Менеджер тегов"
-        minContentWidth: 320
-        minContentHeight: 300
-        onClosed: root.close()
+    Column {
+        anchors.fill: parent
+        spacing: Theme.spacing
 
-        Column {
-            anchors.fill: parent
+        TextField {
+            id: searchField
+            width: parent.width
+            placeholderText: "Поиск или новый тег"
+
+            onTextChanged: App.tagModel.query = text
+            onAccepted: root.createOrApply()
+        }
+
+        Row {
+            width: parent.width
             spacing: Theme.spacing
 
-            TextField {
-                id: searchField
-                width: parent.width
-                placeholderText: "Поиск или новый тег"
-
-                onTextChanged: App.tagModel.query = text
-                onAccepted: createOrApply()
+            Button {
+                text: "Создать"
+                enabled: searchField.text.trim().length > 0
+                onClicked: root.createOrApply()
             }
 
-            Row {
-                width: parent.width
-                spacing: Theme.spacing
-
-                Button {
-                    text: "Создать"
-                    enabled: searchField.text.trim().length > 0
-                    onClicked: createOrApply()
-                }
-
-                Button {
-                    text: "Удалить тег"
-                    visible: root.selectedTagId.length > 0 && !root.multiSelectMode
-                    onClicked: confirmDelete.open()
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Всего тегов: " + App.tagModel.count
-                    color: Theme.textDim
-                    font.pixelSize: Theme.fontSizeSmall
-                }
-            }
-
-            ListView {
-                id: tagList
-                width: parent.width
-                height: parent.height - y - Theme.spacing
-                clip: true
-                model: App.tagModel
-
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-
-                delegate: Rectangle {
-                    id: tagRow
-                    width: tagList.width
-                    height: 32
-                    color: rowMouse.containsMouse ? Theme.hover
-                         : root.selectedTagId === tagRow.tagId ? Theme.accentSoft
-                         : "transparent"
-
-                    required property string tagId
-                    required property string name
-                    required property int count
-
-                    readonly property bool applied: root.isApplied(tagRow.tagId)
-
-                    // Отметка «тег уже применён к файлу».
-                    Canvas {
-                        anchors.left: parent.left
-                        anchors.leftMargin: Theme.spacing
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 14
-                        height: 14
-                        visible: tagRow.applied
-
-                        onPaint: draw()
-
-                        function draw() {
-                            const ctx = getContext("2d");
-                            ctx.reset();
-                            ctx.strokeStyle = Theme.accent;
-                            ctx.lineWidth = 2;
-                            ctx.lineCap = "round";
-                            ctx.beginPath();
-                            ctx.moveTo(2, 7);
-                            ctx.lineTo(6, 11);
-                            ctx.lineTo(12, 3);
-                            ctx.stroke();
-                        }
-                    }
-
-                    Text {
-                        anchors.left: parent.left
-                        anchors.leftMargin: Theme.spacing * 3
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 80
-                        text: tagRow.name
-                        elide: Text.ElideRight
-                        color: Theme.text
-                        font.pixelSize: Theme.fontSizeNormal
-                    }
-
-                    Text {
-                        anchors.right: parent.right
-                        anchors.rightMargin: Theme.spacing
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: tagRow.count
-                        color: Theme.textDim
-                        font.pixelSize: Theme.fontSizeSmall
-                    }
-
-                    MouseArea {
-                        id: rowMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: {
-                            root.selectedTagId = tagRow.tagId;
-                            if (root.multiSelectMode) {
-                                // Массовый режим: клик сразу применяет тег.
-                                App.applyTagToSelection(tagRow.tagId);
-                                root.close();
-                            }
-                        }
-                        onDoubleClicked: {
-                            if (!root.multiSelectMode)
-                                root.toggleTag(tagRow.tagId);
-                        }
-                    }
-                }
+            Button {
+                text: "Удалить тег"
+                visible: root.selectedTagId.length > 0 && !root.multiSelectMode
+                onClicked: confirmDelete.open()
             }
 
             Text {
-                visible: App.tagModel.count === 0
-                width: parent.width
-                text: searchField.text.length > 0 ? "Ничего не найдено" : "Тегов пока нет"
-                color: Theme.textMuted
-                horizontalAlignment: Text.AlignHCenter
-                font.pixelSize: Theme.fontSizeNormal
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Всего тегов: " + App.tagModel.count
+                color: Theme.textDim
+                font.pixelSize: Theme.fontSizeSmall
             }
         }
 
-        Dialog {
-            id: confirmDelete
-            anchors.centerIn: parent
-            title: "Удаление тега"
-            modal: true
-            standardButtons: Dialog.Ok | Dialog.Cancel
+        ListView {
+            id: tagList
+            width: parent.width
+            height: parent.height - y - Theme.spacing
+            clip: true
+            model: App.tagModel
 
-            Text {
-                text: "Удалить тег «" + App.library.tagName(root.selectedTagId) + "»?\n"
-                      + "Тег будет снят со всех файлов."
-                color: Theme.text
-                wrapMode: Text.WordWrap
-                font.pixelSize: Theme.fontSizeNormal
-            }
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
-            onAccepted: {
-                App.library.deleteTag(root.selectedTagId);
-                root.selectedTagId = "";
+            delegate: Rectangle {
+                id: tagRow
+                width: tagList.width
+                height: 32
+                color: rowMouse.containsMouse ? Theme.hover
+                     : root.selectedTagId === tagRow.tagId ? Theme.accentSoft
+                     : "transparent"
+
+                required property string tagId
+                required property string name
+                required property int count
+
+                readonly property bool applied: root.isApplied(tagRow.tagId)
+
+                // Отметка «тег уже применён к файлу».
+                Canvas {
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.spacing
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 14
+                    height: 14
+                    visible: tagRow.applied
+
+                    onPaint: draw()
+
+                    function draw() {
+                        const ctx = getContext("2d");
+                        ctx.reset();
+                        ctx.strokeStyle = Theme.accent;
+                        ctx.lineWidth = 2;
+                        ctx.lineCap = "round";
+                        ctx.beginPath();
+                        ctx.moveTo(2, 7);
+                        ctx.lineTo(6, 11);
+                        ctx.lineTo(12, 3);
+                        ctx.stroke();
+                    }
+                }
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.spacing * 3
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: parent.width - 80
+                    text: tagRow.name
+                    elide: Text.ElideRight
+                    color: Theme.text
+                    font.pixelSize: Theme.fontSizeNormal
+                }
+
+                Text {
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.spacing
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: tagRow.count
+                    color: Theme.textDim
+                    font.pixelSize: Theme.fontSizeSmall
+                }
+
+                MouseArea {
+                    id: rowMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: {
+                        root.selectedTagId = tagRow.tagId;
+                        if (root.multiSelectMode) {
+                            // Массовый режим: клик сразу применяет тег.
+                            App.applyTagToSelection(tagRow.tagId);
+                            root.close();
+                        }
+                    }
+                    onDoubleClicked: {
+                        if (!root.multiSelectMode)
+                            root.toggleTag(tagRow.tagId);
+                    }
+                }
             }
+        }
+
+        Text {
+            visible: App.tagModel.count === 0
+            width: parent.width
+            text: searchField.text.length > 0 ? "Ничего не найдено" : "Тегов пока нет"
+            color: Theme.textMuted
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: Theme.fontSizeNormal
+        }
+    }
+
+    Dialog {
+        id: confirmDelete
+        anchors.centerIn: parent
+        title: "Удаление тега"
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        Text {
+            text: "Удалить тег «" + App.library.tagName(root.selectedTagId) + "»?\n"
+                  + "Тег будет снят со всех файлов."
+            color: Theme.text
+            wrapMode: Text.WordWrap
+            font.pixelSize: Theme.fontSizeNormal
+        }
+
+        onAccepted: {
+            App.library.deleteTag(root.selectedTagId);
+            root.selectedTagId = "";
         }
     }
 }
