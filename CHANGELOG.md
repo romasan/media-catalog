@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-10-10 — Fix adding a catalog from the catalog manager
+- Adding a folder did nothing in the catalog manager popup: the handler converted the dialog URL with `urlToLocalFile`, which does not exist in QML, so the call failed with a ReferenceError before reaching the library. A regression test now drives the same path the dialog uses.
+- The conversion moved into the core as `AppController::toLocalPath`, and export/import use it too — they had the same broken call, so they failed in the same way.
+- The catalog manager exposes `addCatalogFromUrl` so the dialog handler and tests share one code path.
+
 ## 2026-10-10 — Make every tooltip opaque
 - Tooltips still looked translucent on the viewer buttons (close, previous, next), on the viewer tag chips, on the filter chips and on the popup close buttons. They were declared as `AppToolTip.text: ...`, which is attached-property syntax; a custom component has no attached properties, so QML silently ignored it and created a plain translucent `ToolTip` instead.
 - `AppToolTip` now takes the hover area as `target` and is declared as an ordinary child element, and every tooltip in the application was converted to that form. Verified by rendering the window and counting pixels of the tooltip background colour.

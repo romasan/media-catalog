@@ -92,8 +92,8 @@ Item {
         defaultSuffix: "json"
         nameFilters: ["JSON (*.json)"]
         onAccepted: {
-            // selectedFile — URL, а не путь.
-            const path = urlToLocalFile(selectedFile);
+            // selectedFile — URL, а не путь: преобразуем через ядро.
+            const path = App.toLocalPath(selectedFile);
             if (App.transferData(true, path))
                 App.notifyExportDirectory(path);
         }
@@ -104,6 +104,6 @@ Item {
         title: "Импорт данных"
         fileMode: FileDialog.OpenFile
         nameFilters: ["JSON (*.json)"]
-        onAccepted: App.transferData(false, urlToLocalFile(selectedFile))
+        onAccepted: App.transferData(false, App.toLocalPath(selectedFile))
     }
 }

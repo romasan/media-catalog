@@ -65,6 +65,11 @@ public:
     Q_INVOKABLE void createTagAndApplyToSelection(const QString &name);
     Q_INVOKABLE void revealInFileManager(const QString &filePath);
     Q_INVOKABLE void requestCaptureDate(const QString &mediaId) const;
+    /// Преобразует адрес из диалога (`file:///…`) в локальный путь.
+    /// В QML такой функции нет: `urlToLocalFile` не существует, а
+    /// `Qt.resolvedUrl` возвращает тот же URL.
+    Q_INVOKABLE QString toLocalPath(const QString &url) const;
+
     Q_INVOKABLE QString formatDateTime(qint64 timestampMs) const;
     Q_INVOKABLE QString formatFileSize(qint64 bytes) const;
     /// Экспорт/импорт с диалогом выбора файла на стороне QML.

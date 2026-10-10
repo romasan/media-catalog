@@ -12,6 +12,14 @@ PopupFrame {
     frameHeight: 420
     objectName: "catalogManager"
 
+    /// Добавить каталог по адресу из диалога.
+    /// Диалог отдаёт URL (`file:///…`), поэтому приводим его к локальному пути.
+    function addCatalogFromUrl(url) {
+        if (!url)
+            return;
+        App.addCatalog(App.toLocalPath(url));
+    }
+
     /// Статистика по каталогу: сколько фото и видео найдено.
     function statsFor(catalogId) {
         const stats = Library.catalogStats();
@@ -131,10 +139,7 @@ PopupFrame {
         objectName: "folderDialog"
         title: "Выберите папку для сканирования"
         currentFolder: Qt.url(App.defaultCatalogDirectory)
-        // selectedFolder — это URL (file:///…), поэтому приводим его
-        // к локальному пути: иначе каталог не найдётся и сканирование
-        // ничего не сделает.
-        onAccepted: App.addCatalog(urlToLocalFile(selectedFolder))
+        onAccepted: root.addCatalogFromUrl(selectedFolder)
     }
 
     Dialog {

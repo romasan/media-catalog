@@ -3,6 +3,7 @@
 #include "app/MediaListModel.h"
 #include "app/TagListModel.h"
 #include "core/MediaLibrary.h"
+#include "core/Paths.h"
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -133,6 +134,11 @@ void AppController::revealInFileManager(const QString &filePath)
 void AppController::requestCaptureDate(const QString &mediaId) const
 {
     m_library->requestCaptureDate(mediaId);
+}
+
+QString AppController::toLocalPath(const QString &url) const
+{
+    return mc::toLocalPath(url);
 }
 
 QString AppController::formatDateTime(qint64 timestampMs) const
