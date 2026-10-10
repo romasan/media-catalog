@@ -48,9 +48,11 @@ Item {
             onClicked: menu.opened ? menu.close() : menu.open()
         }
 
-        AppToolTip.text: "Меню"
-        AppToolTip.visible: hoverArea.containsMouse
-        AppToolTip.delay: 600
+        AppToolTip {
+            target: hoverArea
+            text: "Меню"
+            delay: 600
+        }
     }
 
     Menu {

@@ -105,11 +105,12 @@ Item {
     }
 
     AppToolTip {
+        target: hoverArea
         text: root.name
+        delay: 700
         // Подсказка только для видимой карточки: элемент под другим окном
         // (просмотром или попапом) не должен её показывать.
-        visible: hoverArea.containsMouse && root.name.length > 0 && root.visible
+        visible: target.containsMouse && root.name.length > 0 && root.visible
                  && root.Window.active
-        delay: 700
     }
 }

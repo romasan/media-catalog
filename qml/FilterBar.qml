@@ -75,15 +75,17 @@ Item {
                                 onClicked: App.library.setFilterMode(modelData.mode)
                             }
 
-                            AppToolTip.text: modelData.hint
-                            AppToolTip.visible: hoverArea.containsMouse
-                            AppToolTip.delay: 600
-
                             MouseArea {
                                 id: hoverArea
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 acceptedButtons: Qt.NoButton
+                            }
+
+                            AppToolTip {
+                                target: hoverArea
+                                text: modelData.hint
+                                delay: 600
                             }
                         }
                     }
@@ -153,10 +155,12 @@ Item {
                                 onClicked: App.library.removeTagFromFilter(modelData.id)
                             }
 
-                            AppToolTip.text: parent.isMeta ? "Удалить метатег из фильтра"
-                                                        : "Удалить тег из фильтра"
-                            AppToolTip.visible: closeArea.containsMouse
-                            AppToolTip.delay: 600
+                            AppToolTip {
+                                target: closeArea
+                                text: parent.isMeta ? "Удалить метатег из фильтра"
+                                                    : "Удалить тег из фильтра"
+                                delay: 600
+                            }
                         }
                     }
                     }

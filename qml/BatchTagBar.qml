@@ -64,12 +64,23 @@ Item {
             width: 220
             height: 28
             editable: true
+            // Нужно для подсказки: она следит за наведением.
+            hoverEnabled: true
+
+            MouseArea {
+                id: tagInputMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.NoButton
+            }
             model: App.tagModel
             textRole: "name"
             displayText: editText
 
-            AppToolTip.text: "Введите имя тега и нажмите «Применить»"
-            AppToolTip.visible: hovered
+            AppToolTip {
+                target: tagInputMouse
+                text: "Введите имя тега и нажмите «Применить»"
+            }
 
             onAccepted: applyButton.apply()
         }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-10 — Make every tooltip opaque
+- Tooltips still looked translucent on the viewer buttons (close, previous, next), on the viewer tag chips, on the filter chips and on the popup close buttons. They were declared as `AppToolTip.text: ...`, which is attached-property syntax; a custom component has no attached properties, so QML silently ignored it and created a plain translucent `ToolTip` instead.
+- `AppToolTip` now takes the hover area as `target` and is declared as an ordinary child element, and every tooltip in the application was converted to that form. Verified by rendering the window and counting pixels of the tooltip background colour.
+
 ## 2026-10-10 — Remove the Electron sources from the native branch
 - Deleted the source of version 1.x from this branch: `src/main`, `src/preload`, `src/renderer`, `src/shared`, `index.html`, `package.json`, `package-lock.json`, the three `tsconfig` files, `vite.config.ts` and `.clinerules`. They remain in the `main` branch.
 - Application icons moved from `build/` to `assets/`, and the CMake build now reads `assets/icon.icns` and `assets/icon.ico`. The old `build/` directory also held leftovers of an early in-tree CMake run (`libmc_core.a`, test binaries, autogen and ninja files), which are gone.

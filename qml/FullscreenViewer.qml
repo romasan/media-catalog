@@ -243,9 +243,10 @@ Item {
             onClicked: root.close()
         }
 
-        AppToolTip.text: "Закрыть (Esc)"
-        AppToolTip.visible: closeArea.containsMouse
-        AppToolTip.delay: 500
+        AppToolTip {
+            target: closeArea
+            text: "Закрыть (Esc)"
+        }
     }
 
     // Счётчик позиции в списке.
@@ -354,15 +355,17 @@ Item {
                             onClicked: Library.addTagToFilter(modelData.id)
                         }
 
-                        AppToolTip.text: "Добавить «" + modelData.name + "» в фильтр"
-                        AppToolTip.visible: metaMouse.containsMouse
-                        AppToolTip.delay: 600
-
                         MouseArea {
                             id: metaMouse
                             anchors.fill: parent
                             hoverEnabled: true
                             acceptedButtons: Qt.NoButton
+                        }
+
+                        AppToolTip {
+                            target: metaMouse
+                            text: "Добавить «" + modelData.name + "» в фильтр"
+                            delay: 600
                         }
                     }
                 }
@@ -417,15 +420,17 @@ Item {
                             }
                         }
 
-                        AppToolTip.text: "Добавить «" + modelData.name + "» в фильтр"
-                        AppToolTip.visible: tagHover.containsMouse
-                        AppToolTip.delay: 600
-
                         MouseArea {
                             id: tagHover
                             anchors.fill: parent
                             hoverEnabled: true
                             acceptedButtons: Qt.NoButton
+                        }
+
+                        AppToolTip {
+                            target: tagHover
+                            text: "Добавить «" + modelData.name + "» в фильтр"
+                            delay: 600
                         }
                     }
                 }
@@ -494,9 +499,10 @@ Item {
                             onClicked: tagInput.openEditor()
                         }
 
-                        AppToolTip.text: "Добавить тег"
-                        AppToolTip.visible: addArea.containsMouse
-                        AppToolTip.delay: 500
+                        AppToolTip {
+                            target: addArea
+                            text: "Добавить тег"
+                        }
                     }
 
                     // Поле ввода с подсказками.

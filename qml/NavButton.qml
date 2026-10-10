@@ -62,8 +62,9 @@ Item {
             onClicked: root.clicked()
         }
 
-        AppToolTip.text: root.direction === "left" ? "Предыдущее (←)" : "Следующее (→)"
-        AppToolTip.visible: pressArea.containsMouse
-        AppToolTip.delay: 500
+        AppToolTip {
+            target: pressArea
+            text: root.direction === "left" ? "Предыдущее (←)" : "Следующее (→)"
+        }
     }
 }
