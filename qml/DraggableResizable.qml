@@ -117,9 +117,9 @@ Rectangle {
                 onClicked: root.close()
             }
 
-            ToolTip.text: "Закрыть"
-            ToolTip.visible: closeArea.containsMouse
-            ToolTip.delay: 500
+            AppToolTip.text: "Закрыть"
+            AppToolTip.visible: closeArea.containsMouse
+            AppToolTip.delay: 500
         }
 
     }

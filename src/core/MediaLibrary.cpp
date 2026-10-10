@@ -180,6 +180,11 @@ int MediaLibrary::tagCount() const { return m_tagCount; }
 
 qreal MediaLibrary::thumbnailProgress() const { return m_thumbnailProgress; }
 
+bool MediaLibrary::hasTags() const
+{
+    return m_database.tagCount() > 0;
+}
+
 void MediaLibrary::recount()
 {
     m_photoCount = m_database.mediaCountByKind(MediaKind::Photo);

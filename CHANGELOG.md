@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-10 — Restore the tag manager and make tooltips opaque
+- Tooltips are no longer translucent: a shared `AppToolTip` sets an opaque background and a border, and every tooltip in the application uses it.
+- The tag manager matches version 1.x again: meta tags are listed on top grouped by kind (years, seasons, file type, untagged), the search field shows a "Создать" button only when the typed name does not exist yet, and the list shows each tag with its file count.
+- Deleting tags is back: every row has a delete button. A tag that is not assigned anywhere is deleted at once; a tag assigned to files asks for confirmation and reports how many files will lose the link.
+- Clicking a tag row or a meta tag chip adds that condition to the global filter, as before.
+- The tag manager is titled "Управление тегами" and is taller to fit the meta tag groups.
+
 ## 2026-10-10 — Show the filter chips in the panel
 - A tag added to the filter from the viewer was applied to the grid but the filter panel stayed 99 px wide with no chips: the chip row used a `Repeater` with a function call as its model, which never re-evaluates, and the row reported no size to its parent. The controller now exposes `filterTags` and `filterMode` as properties with a change signal, and the chip row is an explicit row inside a flickable, so the panel grows and shows the chips.
 - The visible date range under the panel confirms the grid itself was already filtering correctly.

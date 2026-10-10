@@ -124,6 +124,8 @@ qt_add_qml_module(mediacatalog
         qml/BurgerGlyph.qml
         qml/PlayGlyph.qml
         qml/NavButton.qml
+        qml/AppToolTip.qml
+        qml/DeleteGlyph.qml
 )
 
 set_target_properties(mediacatalog PROPERTIES

@@ -243,9 +243,9 @@ Item {
             onClicked: root.close()
         }
 
-        ToolTip.text: "Закрыть (Esc)"
-        ToolTip.visible: closeArea.containsMouse
-        ToolTip.delay: 500
+        AppToolTip.text: "Закрыть (Esc)"
+        AppToolTip.visible: closeArea.containsMouse
+        AppToolTip.delay: 500
     }
 
     // Счётчик позиции в списке.
@@ -354,9 +354,9 @@ Item {
                             onClicked: Library.addTagToFilter(modelData.id)
                         }
 
-                        ToolTip.text: "Добавить «" + modelData.name + "» в фильтр"
-                        ToolTip.visible: metaMouse.containsMouse
-                        ToolTip.delay: 600
+                        AppToolTip.text: "Добавить «" + modelData.name + "» в фильтр"
+                        AppToolTip.visible: metaMouse.containsMouse
+                        AppToolTip.delay: 600
 
                         MouseArea {
                             id: metaMouse
@@ -417,9 +417,9 @@ Item {
                             }
                         }
 
-                        ToolTip.text: "Добавить «" + modelData.name + "» в фильтр"
-                        ToolTip.visible: tagHover.containsMouse
-                        ToolTip.delay: 600
+                        AppToolTip.text: "Добавить «" + modelData.name + "» в фильтр"
+                        AppToolTip.visible: tagHover.containsMouse
+                        AppToolTip.delay: 600
 
                         MouseArea {
                             id: tagHover
@@ -494,9 +494,9 @@ Item {
                             onClicked: tagInput.openEditor()
                         }
 
-                        ToolTip.text: "Добавить тег"
-                        ToolTip.visible: addArea.containsMouse
-                        ToolTip.delay: 500
+                        AppToolTip.text: "Добавить тег"
+                        AppToolTip.visible: addArea.containsMouse
+                        AppToolTip.delay: 500
                     }
 
                     // Поле ввода с подсказками.

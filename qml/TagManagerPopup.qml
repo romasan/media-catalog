@@ -2,12 +2,15 @@ import QtQuick
 import QtQuick.Controls
 import MediaCatalog
 
-// Менеджер тегов.
+// Управление тегами.
 //
-// Два режима:
-//   - обычный: все теги с числом применений, создание и удаление, применение
-//     к открытому файлу;
-//   - multiSelectMode: выбранный тег применяется ко всем выделенным файлам.
+// Повторяет вид и поведение версии 1.x:
+//   - сверху метатеги, сгруппированные по виду (годы, времена года, тип файла,
+//     «без тега»): клик по метатегу добавляет его в фильтр;
+//   - поиск с кнопкой «Создать» (кнопка появляется, если такого тега ещё нет);
+//   - список тегов: имя, число файлов и кнопка удаления;
+//   - клик по строке тега добавляет тег в фильтр;
+//   - тег, присвоенный файлам, удаляется только после подтверждения.
 PopupFrame {
     id: root
 
@@ -19,12 +22,15 @@ PopupFrame {
     property var appliedIds: []
     /// Тег, выбранный в списке.
     property string selectedTagId: ""
+    /// Тег, ожидающий подтверждения удаления.
+    property string pendingDeleteId: ""
+    property int pendingDeleteCount: 0
 
     objectName: "tagManager"
 
-    title: multiSelectMode ? "Тег для " + App.selectedCount + " файлов" : "Менеджер тегов"
-    frameWidth: 420
-    frameHeight: 480
+    title: multiSelectMode ? "Тег для " + App.selectedCount + " файлов" : "Управление тегами"
+    frameWidth: 460
+    frameHeight: 520
 
     /// Общая точка входа: открыть менеджер тегов для выделенных файлов.
     function open() {
@@ -53,13 +59,20 @@ PopupFrame {
         return appliedIds.indexOf(tagId) >= 0;
     }
 
-    function createOrApply() {
+    /// Клик по тегу или метатегу — добавить условие в фильтр.
+    function clickTag(tagId) {
+        Library.addTagToFilter(tagId);
+    }
+
+    function createTag() {
         const name = searchField.text.trim();
         if (name.length === 0)
             return;
 
         if (multiSelectMode) {
+            // Массовый режим: создаём тег и сразу применяем к выделенным файлам.
             App.createTagAndApplyToSelection(name);
+            searchField.text = "";
             close();
             return;
         }
@@ -81,49 +94,164 @@ PopupFrame {
         appliedIds = Library.mediaUserTagIds(mediaId);
     }
 
+    /// Нажать кнопку удаления в строке списка.
+    /// Нужно там, где строку нельзя достать напрямую: делегаты Repeater
+    /// не видны в дереве объектов QML из C++.
+    function deleteTagAt(row) {
+        const item = tagList.itemAtIndex(row);
+        if (!item)
+            return false;
+        item.deleteRequested();
+        return true;
+    }
+
+    /// Подтвердить удаление — то же, что нажать «Удалить» в диалоге.
+    function confirmDeleteNow() {
+        confirmDelete.accept();
+    }
+
+    /// Удаление тега: если он присвоен файлам — сначала подтверждение.
+    function requestDelete(tagId, count) {
+        if (count > 0) {
+            pendingDeleteId = tagId;
+            pendingDeleteCount = count;
+            confirmDelete.open();
+            return;
+        }
+        Library.deleteTag(tagId);
+    }
+
+    /// Метатеги, сгруппированные по виду.
+    readonly property var metaGroups: {
+        App.tagRevision;
+        const order = ["Годы", "Времена года", "Тип файла", "Прочее"];
+        const all = Library.metaTags();
+        const groups = [];
+        for (let i = 0; i < order.length; ++i) {
+            const items = [];
+            for (let j = 0; j < all.length; ++j) {
+                if (all[j].group === order[i])
+                    items.push(all[j]);
+            }
+            if (items.length > 0)
+                groups.push({ "group": order[i], "items": items });
+        }
+        return groups;
+    }
+
+    /// Есть ли уже тег с введённым именем.
+    readonly property bool tagExists: {
+        App.tagRevision;
+        const name = searchField.text.trim().toLowerCase();
+        if (name.length === 0)
+            return false;
+        const all = Library.allTags();
+        for (let i = 0; i < all.length; ++i) {
+            if (all[i].name.toLowerCase() === name)
+                return true;
+        }
+        return false;
+    }
+
     Column {
         anchors.fill: parent
         spacing: Theme.spacing
 
-        TextField {
-            id: searchField
+        // ==== Метатеги по группам ====
+        Column {
+            id: metaSection
             width: parent.width
-            placeholderText: "Поиск или новый тег"
+            spacing: 8
+            visible: root.metaGroups.length > 0
 
-            onTextChanged: App.tagModel.query = text
-            onAccepted: root.createOrApply()
+            Repeater {
+                model: root.metaGroups
+
+                delegate: Column {
+                    required property var modelData
+                    width: metaSection.width
+                    spacing: 4
+
+                    Text {
+                        text: modelData.group.toUpperCase()
+                        color: Theme.textDim
+                        font.pixelSize: 11
+                        font.letterSpacing: 0.5
+                    }
+
+                    Flow {
+                        width: metaSection.width - 20
+                        spacing: 4
+
+                        Repeater {
+                            model: modelData.items
+
+                            delegate: Rectangle {
+                                required property var modelData
+
+                                width: metaChipLabel.implicitWidth + 20
+                                height: 22
+                                radius: 12
+                                color: metaChipArea.containsMouse ? "#4a4a4a" : "#3a3a3a"
+
+                                Text {
+                                    id: metaChipLabel
+                                    anchors.centerIn: parent
+                                    text: modelData.name
+                                    color: metaChipArea.containsMouse ? "#dddddd" : "#aaaaaa"
+                                    font.pixelSize: 12
+                                }
+
+                                MouseArea {
+                                    id: metaChipArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.clickTag(modelData.id)
+                                }
+
+                                AppToolTip {
+                                    text: "Добавить «" + modelData.name + "» в фильтр"
+                                    visible: metaChipArea.containsMouse
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
+        // ==== Поиск и создание ====
         Row {
             width: parent.width
             spacing: Theme.spacing
 
+            TextField {
+                id: searchField
+                width: parent.width - (createButton.visible ? createButton.width + Theme.spacing : 0)
+                placeholderText: "Поиск или создание тега…"
+
+                onTextChanged: App.tagModel.query = text
+                onAccepted: root.createTag()
+            }
+
             Button {
+                id: createButton
+                // Кнопка создания появляется, только если такого тега ещё нет.
+                visible: searchField.text.trim().length > 0 && !root.tagExists
                 text: "Создать"
-                enabled: searchField.text.trim().length > 0
-                onClicked: root.createOrApply()
-            }
-
-            Button {
-                text: "Удалить тег"
-                visible: root.selectedTagId.length > 0 && !root.multiSelectMode
-                onClicked: confirmDelete.open()
-            }
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "Всего тегов: " + App.tagModel.count
-                color: Theme.textDim
-                font.pixelSize: Theme.fontSizeSmall
+                onClicked: root.createTag()
             }
         }
 
+        // ==== Список тегов ====
         ListView {
             id: tagList
             width: parent.width
-            height: parent.height - y - Theme.spacing
+            height: Math.max(60, parent.height - y - totalLabel.height - Theme.spacing)
             clip: true
             model: App.tagModel
+            spacing: 4
 
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
@@ -131,9 +259,8 @@ PopupFrame {
                 id: tagRow
                 width: tagList.width
                 height: 32
-                color: rowMouse.containsMouse ? Theme.hover
-                     : root.selectedTagId === tagRow.tagId ? Theme.accentSoft
-                     : "transparent"
+                radius: 6
+                color: rowMouse.containsMouse ? "#333333" : "#2c2c2c"
 
                 required property string tagId
                 required property string name
@@ -141,10 +268,15 @@ PopupFrame {
 
                 readonly property bool applied: root.isApplied(tagRow.tagId)
 
-                // Отметка «тег уже применён к файлу».
+                /// Нажатие кнопки удаления в этой строке.
+                function deleteRequested() {
+                    root.requestDelete(tagRow.tagId, tagRow.count);
+                }
+
+                // Отметка «тег уже применён к открытому файлу».
                 Canvas {
                     anchors.left: parent.left
-                    anchors.leftMargin: Theme.spacing
+                    anchors.leftMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
                     width: 14
                     height: 14
@@ -168,72 +300,125 @@ PopupFrame {
 
                 Text {
                     anchors.left: parent.left
-                    anchors.leftMargin: Theme.spacing * 3
+                    anchors.leftMargin: tagRow.applied ? 28 : 10
                     anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - 80
+                    width: parent.width - 140
                     text: tagRow.name
                     elide: Text.ElideRight
-                    color: Theme.text
+                    color: "#d6e6f7"
                     font.pixelSize: Theme.fontSizeNormal
                 }
 
                 Text {
-                    anchors.right: parent.right
-                    anchors.rightMargin: Theme.spacing
+                    anchors.right: deleteButton.left
+                    anchors.rightMargin: 8
                     anchors.verticalCenter: parent.verticalCenter
-                    text: tagRow.count
+                    text: tagRow.count + " файлов"
                     color: Theme.textDim
                     font.pixelSize: Theme.fontSizeSmall
                 }
 
+                // Кнопка удаления.
+                Item {
+                    id: deleteButton
+                    objectName: "deleteTagButton"
+                    anchors.right: parent.right
+                    anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 24
+                    height: 24
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 4
+                        color: deleteArea.containsMouse ? "#3a2a2a" : "transparent"
+                    }
+
+                    DeleteGlyph {
+                        anchors.centerIn: parent
+                        width: 14
+                        height: 14
+                        color: deleteArea.containsMouse ? Theme.danger : Theme.textDim
+                    }
+
+                    MouseArea {
+                        id: deleteArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.requestDelete(tagRow.tagId, tagRow.count)
+                    }
+
+                    AppToolTip {
+                        text: "Удалить тег"
+                        visible: deleteArea.containsMouse
+                    }
+                }
+
+                // Клик по строке добавляет тег в фильтр; в однофайловом режиме
+                // дополнительно применяет его к открытому файлу.
                 MouseArea {
                     id: rowMouse
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         root.selectedTagId = tagRow.tagId;
-                        if (root.multiSelectMode) {
-                            // Массовый режим: клик сразу применяет тег.
-                            App.applyTagToSelection(tagRow.tagId);
-                            root.close();
+                        root.clickTag(tagRow.tagId);
+                        if (!root.multiSelectMode && root.mediaId.length > 0
+                                && !root.isApplied(tagRow.tagId)) {
+                            root.toggleTag(tagRow.tagId);
                         }
                     }
-                    onDoubleClicked: {
-                        if (!root.multiSelectMode)
-                            root.toggleTag(tagRow.tagId);
-                    }
+                }
+
+                AppToolTip {
+                    text: "Добавить «" + tagRow.name + "» в фильтр"
+                    visible: rowMouse.containsMouse && !deleteArea.containsMouse
                 }
             }
         }
 
         Text {
+            id: totalLabel
+            width: parent.width
+            text: "Всего тегов: " + App.tagModel.count
+            color: Theme.textDim
+            horizontalAlignment: Text.AlignHCenter
+            font.pixelSize: Theme.fontSizeSmall
+        }
+
+        Text {
             visible: App.tagModel.count === 0
             width: parent.width
-            text: searchField.text.length > 0 ? "Ничего не найдено" : "Тегов пока нет"
-            color: Theme.textMuted
+            text: searchField.text.length > 0
+                  ? "Ничего не найдено. Нажмите Enter, чтобы создать тег."
+                  : "Тегов пока нет. Создайте первый тег."
+            color: Theme.textDim
             horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
             font.pixelSize: Theme.fontSizeNormal
         }
     }
 
+    // ==== Подтверждение удаления ====
     Dialog {
         id: confirmDelete
         anchors.centerIn: parent
-        title: "Удаление тега"
         modal: true
-        standardButtons: Dialog.Ok | Dialog.Cancel
+        title: "Удалить тег?"
+        // Стандартные кнопки диалога: раскладку берёт на себя Dialog.
+        standardButtons: Dialog.Cancel | Dialog.Ok
+
+        onAccepted: Library.deleteTag(root.pendingDeleteId)
 
         Text {
-            text: "Удалить тег «" + App.library.tagName(root.selectedTagId) + "»?\n"
-                  + "Тег будет снят со всех файлов."
+            width: 320
+            text: "Тег «" + App.library.tagName(root.pendingDeleteId) + "» присвоен файлам: "
+                  + root.pendingDeleteCount + ".\nСвязи с файлами будут удалены."
             color: Theme.text
             wrapMode: Text.WordWrap
             font.pixelSize: Theme.fontSizeNormal
-        }
-
-        onAccepted: {
-            App.library.deleteTag(root.selectedTagId);
-            root.selectedTagId = "";
         }
     }
 }

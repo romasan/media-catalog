@@ -39,6 +39,7 @@ class MediaLibrary : public QObject
     Q_PROPERTY(int videoCount READ videoCount NOTIFY libraryChanged)
     Q_PROPERTY(int mediaCount READ mediaCount NOTIFY libraryChanged)
     Q_PROPERTY(int tagCount READ tagCount NOTIFY libraryChanged)
+    Q_PROPERTY(bool hasTags READ hasTags NOTIFY libraryChanged)
     Q_PROPERTY(qreal thumbnailProgress READ thumbnailProgress NOTIFY thumbnailProgressChanged)
     Q_PROPERTY(QString dataDirectory READ dataDirectory CONSTANT)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
@@ -63,6 +64,7 @@ public:
     int videoCount() const;
     int mediaCount() const;
     int tagCount() const;
+    bool hasTags() const;
     qreal thumbnailProgress() const;
     QString dataDirectory() const { return m_paths.dataDir; }
     QString lastError() const { return m_lastError; }

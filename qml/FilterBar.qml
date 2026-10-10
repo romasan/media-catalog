@@ -75,9 +75,9 @@ Item {
                                 onClicked: App.library.setFilterMode(modelData.mode)
                             }
 
-                            ToolTip.text: modelData.hint
-                            ToolTip.visible: hoverArea.containsMouse
-                            ToolTip.delay: 600
+                            AppToolTip.text: modelData.hint
+                            AppToolTip.visible: hoverArea.containsMouse
+                            AppToolTip.delay: 600
 
                             MouseArea {
                                 id: hoverArea
@@ -153,10 +153,10 @@ Item {
                                 onClicked: App.library.removeTagFromFilter(modelData.id)
                             }
 
-                            ToolTip.text: parent.isMeta ? "Удалить метатег из фильтра"
+                            AppToolTip.text: parent.isMeta ? "Удалить метатег из фильтра"
                                                         : "Удалить тег из фильтра"
-                            ToolTip.visible: closeArea.containsMouse
-                            ToolTip.delay: 600
+                            AppToolTip.visible: closeArea.containsMouse
+                            AppToolTip.delay: 600
                         }
                     }
                     }

@@ -68,8 +68,8 @@ Item {
             textRole: "name"
             displayText: editText
 
-            ToolTip.text: "Введите имя тега и нажмите «Применить»"
-            ToolTip.visible: hovered
+            AppToolTip.text: "Введите имя тега и нажмите «Применить»"
+            AppToolTip.visible: hovered
 
             onAccepted: applyButton.apply()
         }
