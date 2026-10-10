@@ -1,5 +1,4 @@
-# Артефакты сборки CMake (только в корне проекта).
-/build/
+# Артефакты сборки CMake.
 /cmake-build-*/
 /cmake-build/
 compile_commands.json

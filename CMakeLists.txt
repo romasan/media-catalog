@@ -138,15 +138,16 @@ set_target_properties(mediacatalog PROPERTIES
 )
 
 # Значок приложения: на macOS — .icns, на Windows — .ico.
-if(APPLE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/build/icon.icns")
-    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/build/icon.icns"
+# Исходники значков лежат в assets/ (набор PNG, .iconset, .icns, .ico).
+if(APPLE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns")
+    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns"
         PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-    target_sources(mediacatalog PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/build/icon.icns")
+    target_sources(mediacatalog PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.icns")
     set_target_properties(mediacatalog PROPERTIES MACOSX_BUNDLE_ICON_FILE "icon.icns")
-elseif(WIN32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/build/icon.ico")
-    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/build/icon.ico"
+elseif(WIN32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.ico")
+    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.ico"
         PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-    target_sources(mediacatalog PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/build/icon.ico")
+    target_sources(mediacatalog PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/assets/icon.ico")
 endif()
 
 # ==== Консольные тесты (без GUI) ====

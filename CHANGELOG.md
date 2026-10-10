@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-10 — Remove the Electron sources from the native branch
+- Deleted the source of version 1.x from this branch: `src/main`, `src/preload`, `src/renderer`, `src/shared`, `index.html`, `package.json`, `package-lock.json`, the three `tsconfig` files, `vite.config.ts` and `.clinerules`. They remain in the `main` branch.
+- Application icons moved from `build/` to `assets/`, and the CMake build now reads `assets/icon.icns` and `assets/icon.ico`. The old `build/` directory also held leftovers of an early in-tree CMake run (`libmc_core.a`, test binaries, autogen and ninja files), which are gone.
+- `.gitignore` no longer ignores `/build/`, since that directory no longer exists; `cmake-build/` remains ignored.
+- `CLAUDE.md` rewritten for the native project: rules now point at the C++ and QML files instead of the removed Electron ones.
+- Comments in `PathHash.h` and `MetaTags.h` no longer reference deleted files.
+
 ## 2026-10-10 — Restore the tag manager and make tooltips opaque
 - Tooltips are no longer translucent: a shared `AppToolTip` sets an opaque background and a border, and every tooltip in the application uses it.
 - The tag manager matches version 1.x again: meta tags are listed on top grouped by kind (years, seasons, file type, untagged), the search field shows a "Создать" button only when the typed name does not exist yet, and the list shows each tag with its file count.
