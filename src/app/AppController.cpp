@@ -103,7 +103,7 @@ void AppController::createTagAndApplyToSelection(const QString &name)
 
 void AppController::revealInFileManager(const QString &filePath)
 {
-    m_library->showInFolder(filePath);
+    m_library->revealInFileManager(filePath);
 }
 
 void AppController::requestCaptureDate(const QString &mediaId) const

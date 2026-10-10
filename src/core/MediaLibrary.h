@@ -89,7 +89,9 @@ public:
     Q_INVOKABLE QVariantMap mediaAt(int index) const;
     Q_INVOKABLE QVariantMap mediaById(const QString &mediaId) const;
     Q_INVOKABLE void requestCaptureDate(const QString &mediaId);
-    Q_INVOKABLE void showInFolder(const QString &filePath);
+    /// Открывает системный файловый менеджер и выделяет файл.
+    /// Не открывает сам файл в программе просмотра по умолчанию.
+    Q_INVOKABLE void revealInFileManager(const QString &filePath);
     /// Дата съёмки, уже известная из базы (0, если не вычислялась).
     qint64 knownCaptureDate(const QString &mediaId) const;
 
@@ -98,6 +100,11 @@ public:
     Q_INVOKABLE QVariantList tags() const;
     Q_INVOKABLE QVariantList metaTags() const;
     Q_INVOKABLE QVariantList mediaTags(const QString &mediaId) const;
+    /// Только пользовательские теги файла (без метатегов) — для чипов
+    /// в полноэкранном просмотре.
+    Q_INVOKABLE QVariantList userTags(const QString &mediaId) const;
+    /// Все теги с числом применений — для автодополнения при вводе.
+    Q_INVOKABLE QVariantList allTags() const;
     /// Пользовательские теги файла (без метатегов) — для массового тегирования.
     Q_INVOKABLE QStringList mediaUserTagIds(const QString &mediaId) const;
     Q_INVOKABLE QVariantList mediaMetaTags(const QString &mediaId) const;

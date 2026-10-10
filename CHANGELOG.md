@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-10 — Restore viewer controls, tag chips and the 1.x grid area
+- The viewer had no controls: added the ◀ / ▶ navigation buttons, the close cross, the position counter and a bottom bar with the path, date and size, matching version 1.x.
+- Tags are editable again in the viewer: clicking a tag adds it to the global filter (including meta tags), the cross on a chip removes the tag from the file, and "+" opens an input with autocomplete that applies an existing tag or creates and applies a new one. Esc closes the input instead of the viewer.
+- "Показать в проводнике" now reveals the file in Finder (`open -R`) or Explorer (`/select,`) instead of opening the file in the default viewer; on Linux it opens the containing folder.
+- The grid no longer loses space to a header row: the visible-date-range label is an overlay in the grid's corner, so cards fill the whole window.
+- Added `MediaLibrary::userTags()`, `allTags()` and `revealInFileManager()` with tests for the tag chips and for adding/removing a filter tag.
+
 ## 2026-10-10 — Restore the 1.x window layout and fix the viewer
 - The window no longer has a header or footer: the grid fills the whole window and the controls (filter panel, menu button, batch tag bar, progress bar) float above it, so cards are visible across the entire area, as in version 1.x.
 - Opening a file did nothing: the viewer loader never called `open()` on the created item, so the viewer stayed hidden — video audio played while no frame was visible. The loader now opens the viewer, the viewer covers the window (including the controls), and `VideoOutput` is layered above the photo image.

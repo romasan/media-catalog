@@ -298,6 +298,39 @@ int main(int argc, char *argv[])
     checkEqual(tagModel.data(tagModel.index(0, 0), TagListModel::CountRole).toInt(), 2,
                QStringLiteral("счётчик применений тега"));
 
+    // ==== Теги, которые использует полноэкранный просмотр ====
+    {
+        // Пользовательские теги файла — для чипов в просмотре.
+        const QVariantList chips = library.userTags(firstId);
+        checkEqual(chips.size(), 1, QStringLiteral("userTags возвращает теги файла"));
+        if (!chips.isEmpty()) {
+            const QVariantMap chip = chips.constFirst().toMap();
+            check(chip.contains(QStringLiteral("id")), QStringLiteral("у чипа есть id"));
+            check(chip.contains(QStringLiteral("name")), QStringLiteral("у чипа есть name"));
+        }
+
+        // Метатеги не должны попадать в пользовательские теги.
+        for (const QVariant &value : chips) {
+            const QString id = value.toMap().value(QStringLiteral("id")).toString();
+            check(!id.startsWith(QStringLiteral("meta:")),
+                  QStringLiteral("userTags не содержит метатегов"));
+        }
+
+        // Все теги — для автодополнения при вводе.
+        const QVariantList all = library.allTags();
+        check(!all.isEmpty(), QStringLiteral("allTags возвращает теги"));
+        check(all.constFirst().toMap().contains(QStringLiteral("count")),
+              QStringLiteral("у тега есть число применений"));
+
+        // Добавление и снятие тега в фильтре — поведение клика по чипу.
+        library.addTagToFilter(tagId);
+        check(library.filterTagIds().contains(tagId),
+              QStringLiteral("клик по тегу добавляет его в фильтр"));
+        library.removeTagFromFilter(tagId);
+        check(!library.filterTagIds().contains(tagId),
+              QStringLiteral("снятие тега убирает его из фильтра"));
+    }
+
     // ==== Фильтрация ====
     library.addTagToFilter(tagId);
     checkEqual(mediaModel.rowCount(), 2, QStringLiteral("фильтр по тегу оставил два файла"));

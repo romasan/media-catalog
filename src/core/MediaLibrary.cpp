@@ -10,6 +10,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QDesktopServices>
+#include <QProcess>
 #include <QDir>
 #include <QFileInfo>
 #include <QPointer>
@@ -408,10 +409,29 @@ void MediaLibrary::requestCaptureDate(const QString &mediaId)
     });
 }
 
-void MediaLibrary::showInFolder(const QString &filePath)
+void MediaLibrary::revealInFileManager(const QString &filePath)
 {
-    // На macOS Finder выделяет файл, на Windows Проводник открывает папку.
-    QDesktopServices::openUrl(QUrl::fromLocalFile(QFileInfo(filePath).absoluteFilePath()));
+    const QFileInfo info(filePath);
+    if (!info.exists()) {
+        emit toast(tr("Файл не найден: %1").arg(info.fileName()), kToastError);
+        return;
+    }
+
+    // QDesktopServices::openUrl открыл бы сам файл в программе по умолчанию.
+    // Чтобы выделить файл, нужна платформенная команда файлового менеджера.
+#if defined(Q_OS_MACOS)
+    // -R выделяет файл в Finder (или открывает содержащую папку).
+    QProcess::startDetached(QStringLiteral("/usr/bin/open"),
+                            {QStringLiteral("-R"), info.absoluteFilePath()});
+#elif defined(Q_OS_WIN)
+    // /select выделяет файл в Проводнике.
+    QProcess::startDetached(QStringLiteral("explorer.exe"),
+                            {QStringLiteral("/select,") + QDir::toNativeSeparators(info.absoluteFilePath())});
+#else
+    // В большинстве файловых менеджеров Linux выделение не поддерживается,
+    // поэтому открываем содержащую папку.
+    QDesktopServices::openUrl(QUrl::fromLocalFile(info.absolutePath()));
+#endif
 }
 
 // ==== Теги ====
@@ -465,6 +485,24 @@ QStringList MediaLibrary::mediaUserTagIds(const QString &mediaId) const
         ids.append(tag.id);
     }
     return ids;
+}
+
+QVariantList MediaLibrary::userTags(const QString &mediaId) const
+{
+    QVariantList result;
+    for (const Tag &tag : m_database.mediaTags(mediaId)) {
+        result.append(tagToVariantMap(tag, 0));
+    }
+    return result;
+}
+
+QVariantList MediaLibrary::allTags() const
+{
+    QVariantList result;
+    for (const TagUsage &usage : m_database.tagUsages()) {
+        result.append(tagToVariantMap(usage.tag, usage.count));
+    }
+    return result;
 }
 
 QVariantList MediaLibrary::mediaMetaTags(const QString &mediaId) const

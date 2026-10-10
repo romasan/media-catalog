@@ -123,6 +123,7 @@ qt_add_qml_module(mediacatalog
         qml/CloseGlyph.qml
         qml/BurgerGlyph.qml
         qml/PlayGlyph.qml
+        qml/NavButton.qml
 )
 
 set_target_properties(mediacatalog PROPERTIES
