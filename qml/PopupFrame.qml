@@ -53,6 +53,9 @@ Item {
 
         MouseArea {
             anchors.fill: parent
+            // Наведение тоже перехватываем: иначе над открытым попапом
+            // показывались подсказки карточек из сетки под ним.
+            hoverEnabled: true
             onClicked: root.close()
         }
     }

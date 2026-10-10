@@ -127,6 +127,9 @@ Item {
     MouseArea {
         anchors.fill: parent
         z: 0
+        // hoverEnabled обязателен: иначе события наведения проходят сквозь
+        // просмотр к сетке, и всплывает подсказка с именем карточки.
+        hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         // Клик по пустому месту ничего не делает: навигация — кнопками,
         // клавишами и кликом по самому медиа.
@@ -161,6 +164,7 @@ Item {
         // Клик по медиа листает файлы, ПКМ открывает меню.
         MouseArea {
             anchors.fill: parent
+            hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: function (mouse) {
                 if (mouse.button === Qt.RightButton) {

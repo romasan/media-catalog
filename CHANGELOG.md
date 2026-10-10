@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-10 — Stop card tooltips from showing through the viewer
+- Hovering over the photo in the viewer showed the tooltip of the grid card underneath: the viewer's click-blocking layer accepted clicks but not hover, so hover events travelled down to the grid. The blocking layer and the media layer now enable hover, the popup backdrop does too, and a card tooltip additionally requires the card to be visible in the active window.
+- Verified with a two-layer probe: with hover enabled the overlay reports the pointer and the layer beneath does not, and without it the event reaches the layer underneath.
+
 ## 2026-10-10 — Keep the viewer on its file, clear the tag input, block click-through
 - The real reason a tag click looked like it did nothing: the tag *was* added to the global filter, but the filter rebuilt the media list, the viewer kept a stale row index, lost the current file and dropped all tag chips. The viewer now tracks the open file by id (`currentMediaId`), so the chips survive list rebuilds and the viewer stays on the same file.
 - The tag input is cleared as soon as a tag is picked from the suggestions or created, and again when the editor closes.

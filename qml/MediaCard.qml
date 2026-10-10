@@ -106,7 +106,10 @@ Item {
 
     ToolTip {
         text: root.name
-        visible: hoverArea.containsMouse && root.name.length > 0
+        // Подсказка только для видимой карточки: элемент под другим окном
+        // (просмотром или попапом) не должен её показывать.
+        visible: hoverArea.containsMouse && root.name.length > 0 && root.visible
+                 && root.Window.active
         delay: 700
     }
 }
