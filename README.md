@@ -108,6 +108,8 @@ ctest --output-on-failure
 ├── tests/                  # Консольные тесты (без GUI)
 │   ├── core_tests.cpp          # Тесты ядра
 │   └── model_tests.cpp         # Тесты пути до данных для QML
+├── cmake/                  # Вспомогательные скрипты сборки
+│   └── DeployWindowsDependencies.cmake # Добор сторонних DLL в пакет
 ├── docs/                   # Документация
 │   ├── ARCHITECTURE.md         # Архитектура, потоки, генерация превью
 │   ├── DATA.md                 # Схема базы, превью, экспорт/импорт

@@ -4,3 +4,6 @@
 compile_commands.json
 *.user
 .DS_Store
+
+# Локальный портативный тулчейн (MSYS2 + Qt6 + GCC) — не часть проекта.
+/.toolchain/

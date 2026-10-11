@@ -17,6 +17,7 @@
 #include <QTemporaryDir>
 #include <QTextStream>
 #include <QTimer>
+#include <QUrl>
 
 #include <cstdio>
 
@@ -165,7 +166,10 @@ void testCatalogFromUrl(MediaLibrary &library, const QString &photosRoot)
     const QString urlRoot = QDir(photosRoot).filePath(QStringLiteral("sub"));
     check(QFileInfo(urlRoot).isDir(), QStringLiteral("подпапка для проверки URL существует"));
 
-    const QString url = QStringLiteral("file://") + urlRoot;
+    // URL строим так же, как это делает Qt: на Windows ручное склеивание
+    // «file://» + «C:/…» даёт URL с хостом «c:» и локальным путём «//c/…»,
+    // тогда как диалоги возвращают «file:///C:/…».
+    const QString url = QUrl::fromLocalFile(urlRoot).toString();
     library.addCatalog(url);
     check(waitForScan(library), QStringLiteral("сканирование после добавления по URL завершилось"));
 

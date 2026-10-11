@@ -72,9 +72,41 @@ cd cmake-build
 cpack -G NSIS                               :: MediaCatalog-2.0.0-win64.exe
 ```
 
+Цель `deploy` собирает самодостаточный каталог `cmake-build\deploy`: сначала
+`windeployqt` раскладывает библиотеки Qt, плагины и QML-модули, затем
+`cmake/DeployWindowsDependencies.cmake` по таблицам импортов уже развёрнутых
+бинарников добирает сторонние библиотеки (ICU, freetype, harfbuzz, OpenSSL,
+ffmpeg с кодеками и runtime MinGW), а рядом с `mediacatalog.exe` кладётся
+`qt.conf` с путями пакета. Установщик NSIS включает этот каталог целиком,
+поэтому установленное приложение работает на машине без установленного Qt.
+
 `ffmpeg.exe` и `ffprobe.exe` положите в `PATH` или рядом с
 `mediacatalog.exe` — иначе превью и дата съёмки видео работать не будут
 (об этом приложение предупредит при запуске).
+
+### Windows с MinGW (MSYS2)
+
+Если MSVC и Qt Online Installer ставить не хочется, приложение собирается
+портативным тулчейном MSYS2 без прав администратора. В окружении MINGW64:
+
+```bash
+pacman -S --needed mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake \
+      mingw-w64-x86_64-ninja mingw-w64-x86_64-qt6-base \
+      mingw-w64-x86_64-qt6-declarative mingw-w64-x86_64-qt6-multimedia \
+      mingw-w64-x86_64-qt6-svg mingw-w64-x86_64-ffmpeg \
+      mingw-w64-x86_64-nsis
+
+cmake -S . -B cmake-build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_PREFIX_PATH=C:/msys64/mingw64
+cmake --build cmake-build
+ctest --test-dir cmake-build --output-on-failure
+cmake --build cmake-build --target deploy
+cd cmake-build && cpack -G NSIS
+```
+
+`windeployqt`, `objdump` и `makensis` берутся из того же каталога
+`mingw64\bin`, поэтому его нужно добавить в `PATH` перед сборкой пакета:
+сторонние библиотеки копируются в пакет именно оттуда.
 
 ## Linux
 
@@ -145,3 +177,5 @@ ctest --output-on-failure
 | Видео не воспроизводится | Не установлен модуль Qt Multimedia или его системный бэкенд |
 | `ERROR: Cannot resolve rpath` при `macdeployqt` | Не установлен какой-то модуль Qt (например, `qtsvg`): установите и пересоберите |
 | `Could not load the Qt platform plugin "cocoa"`, в логе «loading two sets of Qt binaries» | Пакет развёрнут прямо в дереве сборки: собирайте через цель `deploy` (она кладёт пакет в `<build>/deploy`) либо удалите и пересоберите каталог сборки |
+| `pacman` пишет `Can't create '/mingw64/bin/…'`, нужные файлы не появляются | Пакеты MSYS2 раскладывают часть имён (`gcc.exe`, `qmake6.exe`, man-страницы) как жёсткие ссылки, а Windows без прав администратора их не создаёт. Включите режим разработчика Windows или разложите копии целевых файлов вручную |
+| В собранном пакете приложение пишет `module "QtQuick" is not installed` | Qt ищет QML-модули относительно своего префикса, а `windeployqt` кладёт их в `<пакет>/qml`. Рядом с `mediacatalog.exe` нужен `qt.conf` с `Qml2Imports=qml`; цель `deploy` его создаёт |

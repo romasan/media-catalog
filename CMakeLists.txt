@@ -230,13 +230,38 @@ if(APPLE)
 elseif(WIN32)
     find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${_qt_bin_dir}")
 
+    # Сторонние зависимости (ICU, freetype, harfbuzz, ffmpeg, runtime MinGW и
+    # прочее) windeployqt не копирует, поэтому их добирает отдельный скрипт по
+    # таблицам импортов уже развёрнутых бинарников. objdump есть в MinGW; при
+    # сборке MSVC шаг пропускается, там runtime кладёт сам windeployqt.
+    get_filename_component(_compiler_bin_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    find_program(OBJDUMP_EXECUTABLE objdump HINTS "${_compiler_bin_dir}")
+
+    # Qt ищет QML-модули относительно своего префикса: у сборки MSYS2 это
+    # <префикс>/share/qt6/qml, тогда как windeployqt раскладывает их в <пакет>/qml.
+    # qt.conf рядом с exe задаёт пути пакета, и приложение работает без Qt в системе.
+    set(DEPLOY_QT_CONF "${CMAKE_BINARY_DIR}/deploy-qt.conf")
+    file(WRITE "${DEPLOY_QT_CONF}"
+         "[Paths]\nPrefix=.\nPlugins=.\nQml2Imports=qml\nTranslations=translations\n")
+
     add_custom_target(deploy
         COMMAND "${CMAKE_COMMAND}" -E rm -rf "${DEPLOY_DIR}"
         COMMAND "${CMAKE_COMMAND}" -E make_directory "${DEPLOY_DIR}"
         COMMAND "${CMAKE_COMMAND}" -E copy "$<TARGET_FILE:mediacatalog>"
                 "${DEPLOY_DIR}/mediacatalog.exe"
+        # -qmldir обязателен: QML-модули (QtQuick, QtQuick.Controls, QtMultimedia)
+        # лежат на диске рядом с Qt, и без обхода qml/ они в пакет не попадают.
         COMMAND "${WINDEPLOYQT_EXECUTABLE}" --release
+                --qmldir "${CMAKE_CURRENT_SOURCE_DIR}/qml"
+                --compiler-runtime
                 "${DEPLOY_DIR}/mediacatalog.exe"
+        COMMAND "${CMAKE_COMMAND}"
+                "-DOBJDUMP=${OBJDUMP_EXECUTABLE}"
+                "-DPACKAGE_DIR=${DEPLOY_DIR}"
+                "-DSEARCH_DIR=${_compiler_bin_dir}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/DeployWindowsDependencies.cmake"
+        COMMAND "${CMAKE_COMMAND}" -E copy "${DEPLOY_QT_CONF}"
+                "${DEPLOY_DIR}/qt.conf"
         COMMENT "Пакет собран в ${DEPLOY_DIR}"
         DEPENDS mediacatalog
         USES_TERMINAL
@@ -273,6 +298,13 @@ endif()
 # Упаковщик берёт файлы из каталога развёртывания, а не из дерева сборки.
 if(APPLE)
     install(DIRECTORY "${DEPLOY_DIR}/mediacatalog.app"
+            DESTINATION .
+            USE_SOURCE_PERMISSIONS)
+elseif(WIN32)
+    # Кроме exe в пакет нужны библиотеки Qt, плагины и QML-модули: без них
+    # установленное приложение не стартует. На Linux Qt берётся из системы,
+    # поэтому там достаточно одного бинарника.
+    install(DIRECTORY "${DEPLOY_DIR}/"
             DESTINATION .
             USE_SOURCE_PERMISSIONS)
 else()

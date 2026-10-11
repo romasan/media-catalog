@@ -261,7 +261,7 @@ qml/
 | «Показать в проводнике» | `QDesktopServices::openUrl` с ссылкой на файл: Finder и Проводник выделяют файл |
 | Воспроизведение видео | `MediaPlayer` + `VideoOutput` (`QtMultimedia`) |
 | Воспроизведение звука | `AudioOutput` с регулировкой громкости |
-| Иконка приложения | `build/icon.icns` для macOS, `build/icon.ico` для Windows |
+| Иконка приложения | `assets/icon.icns` для macOS, `assets/icon.ico` для Windows |
 
 ## Сборка и упаковка
 
@@ -270,7 +270,11 @@ qml/
 - Ядро собирается в `mc_core`, приложение — в `mediacatalog` с QML-модулем
   `MediaCatalog`, тесты — в `mc_core_tests` и `mc_model_tests`.
 - Для переносимого пакета: `ninja deploy` (запускает `macdeployqt` или
-  `windeployqt`) и `cpack`. Подробности — в [BUILD.md](BUILD.md).
+  `windeployqt`) и `cpack`. На Windows цель `deploy` дополнительно добирает
+  сторонние библиотеки по таблицам импортов развёрнутых бинарников
+  (`cmake/DeployWindowsDependencies.cmake`) и кладёт рядом с приложением
+  `qt.conf` с путями пакета — без этого пакет не запускается на машине без Qt.
+  Подробности — в [BUILD.md](BUILD.md).
 
 ## Тесты
 

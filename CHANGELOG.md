@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-10-11 — Make the Windows package self-contained
+- The Windows package could not start on a machine without Qt: `windeployqt` ran without `-qmldir`, so not a single QML module (QtQuick, QtQuick.Controls, QtMultimedia) was copied, and it never copied the third-party libraries the Qt libraries depend on (ICU, freetype, harfbuzz, OpenSSL, ffmpeg with its codecs) nor the MinGW runtime. The `deploy` target now passes `-qmldir`, runs `cmake/DeployWindowsDependencies.cmake` — which walks the import tables of every deployed binary with `objdump` and copies the missing libraries from the toolchain, repeating until no new dependencies appear — and writes `qt.conf` next to the executable so Qt looks for the QML modules inside the package instead of its own prefix.
+- The NSIS installer shipped only `mediacatalog.exe`; on Windows the install rule now installs the whole deploy directory.
+- `mc_model_tests` failed on Windows: it built the dialog URL as `file://` + `C:/…`, which Qt parses as host `c:` and local path `//c/…`. The test now uses `QUrl::fromLocalFile`, the same form the folder dialog returns.
+- `.gitignore` ignores `/.toolchain/`, a local portable toolchain (MSYS2, Qt 6, GCC, ffmpeg) used to build and package the project on a machine without MSVC.
+- Verified on Windows with GCC 16.2 and Qt 6.11: `ctest` passes (core and models), and the application starts, shows its window and creates its database both from `cmake-build\deploy` and from the installer payload with no Qt in `PATH`.
+
 ## 2026-10-10 — Refresh the catalog list and keep the menu working
 - A newly added catalog did not appear in the catalog manager until restart: the list model was a function call, which QML never re-evaluates. `AppController` now exposes `catalogs` with a change signal, carrying each catalog's path, name and photo/video counts, and the popup binds to it.
 - After working with a popup the menu button stopped responding until restart. The menu now closes itself explicitly before running the item action, so the popup's modal overlay is always released, and the hand-made full-window backdrop was removed since `Menu` already dims and blocks the interface.
